@@ -206,6 +206,11 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_connect_timer_cb(void* pArg)
             //START THE SSID CONFIGURATION PROCESS
             _esp8266_ssid_framework_wifi_start_ssid_configuration();
         }
+        else
+        {
+            //ATTEMPT CONNECT TO WIFI AGAIN
+            wifi_station_connect();
+        }
     }
     else
     {
