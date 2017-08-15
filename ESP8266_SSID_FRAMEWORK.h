@@ -15,22 +15,23 @@
 #include "gpio.h"
 #include "os_type.h"
 #include "user_interface.h"
+#include "string.h"
 #include "ESP8266_GPIO.h"
 
-#define ESP8266_SSID_HARDCODED
-#define ESP8266_SSID_SMARTCONFIG
+#define ESP8266_SSID_GPIO
+#define ESP8266_SSID_WEBCONFIG
 
-#if defined(SSID_HARDCODED)
-#elif defined(SSID_FLASH)
+#if defined(ESP8266_SSID_HARDCODED)
+#elif defined(ESP8266_SSID_FLASH)
   #include "ESP8266_FLASH.h"
-#elif defined(SSID_EEPROM)
+#elif defined(ESP8266_SSID_EEPROM)
   #include "ESP8266_EEPROM_AT24.h"
-#elif defined(SSID_INTERNAL)
-#elif defined(SSID_GPIO)
+#elif defined(ESP8266_SSID_INTERNAL)
+#elif defined(ESP8266_SSID_GPIO)
   #include "ESP8266_GPIO.h"
-#elif defined(SSID_SMARTCONFIG)
+#elif defined(ESP8266_SSID_SMARTCONFIG)
   #include "ESP8266_SMARTCONFIG.h"
-#elif defined(SSID_WEBCONFIG)
+#elif defined(ESP8266_SSID_WEBCONFIG)
   #include "ESP8266_MDNS.h"
   #include "ESP8266_TCP_SERVER.h"
   #include "ESP8266_WEBCONFIG.h"
@@ -97,4 +98,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_connect_timer_cb(void* pArg)
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_event_handler_cb(System_Event_t* event);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(void);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(void);
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_softap(void);
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_path_config_cb(void);
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* data, uint16_t len, uint8_t post_flag);
 #endif

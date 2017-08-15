@@ -209,6 +209,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_connect_timer_cb(void* pArg)
         else
         {
             //ATTEMPT CONNECT TO WIFI AGAIN
+            wifi_station_disconnect();
             wifi_station_connect();
         }
     }
@@ -291,7 +292,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
         {
             os_printf("ESP8266 : SSID FRAMEWORK : Starting config = smartconfig\n");
         }
-        ESP8266_SMARTCONFIG_SetDebug(1);
+        ESP8266_SMARTCONFIG_SetDebug(_esp8266_ssid_framework_debug);
         ESP8266_SMARTCONFIG_Initialize();
         ESP8266_SMARTCONFIG_Start();
     }
@@ -299,10 +300,56 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
     {
         //START WEBCONFIG
 
+        #include "ESP8266_TCP_SERVER.h"
         if(_esp8266_ssid_framework_debug)
         {
             os_printf("ESP8266 : SSID FRAMEWORK : Starting config = webconfig\n");
         }
+
+        //START ESP8266 IN SOFTAP MODE
+        _esp8266_ssid_framework_wifi_start_softap();
+        if(_esp8266_ssid_framework_debug)
+        {
+            os_printf("ESP8266 : SSID FRAMEWORK : Starting SSID = ESP8266\n");
+        }
+
+        //START TCP SERVER - SOFTAP MODE
+        ESP8266_TCP_SERVER_SetDebug(_esp8266_ssid_framework_debug);
+        ESP8266_TCP_SERVER_Initialize(80, 1200, 1);
+        ESP8266_TCP_SERVER_SetDataEndingString("\r\n\r\n");
+        ESP8266_TCP_SERVER_SetCallbackFunctions(NULL, NULL, NULL, NULL, _esp8266_ssid_framework_tcp_server_post_data_cb);
+
+        //REGISTER PATH CALLBACKS
+        ESP8266_TCP_SERVER_PATH_CB_ENTRY config_path;
+        config_path.path_string = "/config";
+        config_path.path_cb_fn = _esp8266_ssid_framework_tcp_server_path_config_cb;
+        config_path.path_found = 0;
+         const char *config_page = {
+           "HTTP/1.1 200 OK\r\n"
+           "Connection: Closed\r\n"
+           "Content-type: text/html"
+           "\r\n\r\n"
+           "<html><head><title>ESP8266 POWER OUTAGE LOGGER - Config</title>"
+           "</head>"
+           "<body>"
+           "<h3>ESP8266 POWER OUTAGE LOGGER - Config</h3>"
+           "<form action=\"/config\" method=\"POST\">"
+           "SSID : <input type=\"text\" name=\"ssid\">"
+           "<br><br>"
+           "PASSWORD : <input type=\"text\" name=\"password\">"
+           "<br><br>"
+            "<input type=\"submit\" value=\"Save\">"
+           "</form>"
+           "</body></html>"
+        };
+        config_path.path_response = config_page;
+        ESP8266_TCP_SERVER_RegisterUrlPathCb(config_path);
+
+        ESP8266_TCP_SERVER_Start();
+
+        //START MDNS(SOFTAP MODE)
+        ESP8266_MDNS_SetDebug(_esp8266_ssid_framework_debug);
+        ESP8266_MDNS_Initialize("esp8266", "esp8266", 80, 1);
     }
 }
 
@@ -323,4 +370,71 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(voi
     os_timer_arm(&_wifi_connect_timer, _ssid_connect_retry_delay_ms, 0);
 
     wifi_station_connect();
+}
+
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_softap(void)
+{
+    //START SOFTAP ON ESP8266
+    //SSID = ESP8266 | PASSWORD = 123456789
+
+    struct softap_config config;
+
+    wifi_set_opmode(STATIONAP_MODE);
+
+    wifi_softap_get_config(&config);
+    os_memset(config.ssid, 0, 32);
+    os_memset(config.password, 0, 64);
+    os_memcpy(config.ssid, "ESP8266", 7);
+    os_memcpy(config.password, "12345678", 8);
+    config.authmode = AUTH_WEP;
+    config.ssid_hidden = 0;
+    config.max_connection = 2;
+    wifi_softap_set_config(&config);
+}
+
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_path_config_cb(void)
+{
+    //CB FUNCTION FOR CONFIG PATH FOUND IN TCP SERVER REQUESTS
+
+    if(_esp8266_ssid_framework_debug)
+    {
+        os_printf("ESP8266 : SSID FRAMEWORK : Config path found!!\n");
+    }
+}
+
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* data, uint16_t len, uint8_t post_flag)
+{
+    //CB FUNCTION FOR TCP SERVER FOR TCP DATA RECEIVED
+    //POST FLAG = 1 : POST DATA
+    //POST FLAG = 0 : GET DATA (IGNORE : PATH CB WILL HANDLE IT)
+
+    if(post_flag)
+    {
+      if(_esp8266_ssid_framework_debug)
+      {
+          os_printf("ESP8266 : SSID FRAMEWORK : SSID configuration data received!\n");
+      }
+
+      //EXTRACT SSID NAME / PASSWORD
+      char ssid_name[32];
+      char ssid_pswd[32];
+
+      char* config_str = strstr(data, "ssid=");
+      char* ptr1 = strchr(config_str, '=');
+      char* ptr2 = strchr(config_str, '&');
+      char* ptr3 = strstr(ptr2, "=");
+
+      if(ptr2 == (ptr1 + 1) || ptr3 == (ptr2 + 1))
+      {
+          //EITHER THE SSID OR PASSWORD EMPTY
+          os_printf("ESP8266 : SSID FRAMEWORK : Either ssid or password empty\n");
+          return;
+      }
+
+      strncpy(ssid_name, ptr1 + 1, (ptr2 - ptr1 - 1));
+      strncpy(ssid_pswd, ptr3 + 1, 32);
+
+      os_printf("ESP8266 : SSID FRAMEWORK : SSID name : %s\n", ssid_name);
+      os_printf("ESP8266 : SSID FRAMEWORK : SSID passsword : %s\n", ssid_pswd);
+    }
 }
