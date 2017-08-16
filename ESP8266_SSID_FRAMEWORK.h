@@ -1,7 +1,40 @@
 /*************************************************
 * ESP8266 SSID CONNECT FRAMEWORK
+* SOFT AP DETAILS
+* //SSID = ESP8266 | PASSWORD = 123456789
 *
-* AUGUST 13 2016
+* SET THE WIFI RECONNECT INTERVAL TO ATLEAST
+* 4000ms (4 s), SO AS TO GIVE ENOUGH TIME TO
+* ESP8266 TO CONNECT TO WIFI
+*
+*  INPUT_MODE        TRIGGER                   IF NOT ABLE TO CONNECT TO WIFI
+*  ----------        --------------            -----------------------------------------------
+*
+*  GPIO              GPIO PIN HIGH             - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*                                                OR IN TCP WEBSERVER
+*                                              - WIFI CONNECT SUCCESSFULL
+*                                              - AUTO CONNECT ON RESTART FROM INTERNAL SSID CACHE
+*
+*  HARDCODED         NOT ABLE TO CONNECT       - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*                    TO HARDCODED SSID           OR IN TCP WEBSERVER
+*                                              - WIFI CONNECT SUCCESSFULL
+*                                              - ON RESTART CHECK FOR VALID SSID CACHE. IF FOUND
+*                                                CONNECT USING THAT ELSE USE HARDCODED ONE
+*
+*  INTERNAL          NOT ABLE TO CONNECT       - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*                    TO INTERNALLY CACHED        OR IN TCP WEBSERVER
+*                    SSID                      - WIFI CONNECT SUCCESSFULL
+*                                              - AUTO CONNECT ON RESTART FROM INTERNAL SSID CACHE
+*
+*  FLASH             NOT ABLE TO CONNECT       - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*  EEPROM            TO SSID READ FROM           OR IN TCP WEBSERVER
+*                    FLASH/EEPROM AT GIVEN     - WIFI CONNECT SUCCESSFULL
+*                    ADDRESS                   - SAVE WIFI CREDENTIAL TO FLASH/EEPROM
+*                                              - ON RESTART, AGAIN READ FLASH/EEPROM ADDRESS
+*                                                AND CONNECT TO READ SSID
+*
+*
+* AUGUST 13 2017
 *
 * ANKIT BHATNAGAR
 * ANKIT.BHATNAGARINDIA@GMAIL.COM
@@ -18,24 +51,23 @@
 #include "string.h"
 #include "ESP8266_GPIO.h"
 
-#define ESP8266_SSID_GPIO
+#define ESP8266_SSID_HARDCODED
 #define ESP8266_SSID_WEBCONFIG
 
-#if defined(ESP8266_SSID_HARDCODED)
-#elif defined(ESP8266_SSID_FLASH)
+#define ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN  32
+#define ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN  64
+
+#if defined(ESP8266_SSID_FLASH)
   #include "ESP8266_FLASH.h"
 #elif defined(ESP8266_SSID_EEPROM)
   #include "ESP8266_EEPROM_AT24.h"
-#elif defined(ESP8266_SSID_INTERNAL)
-#elif defined(ESP8266_SSID_GPIO)
-  #include "ESP8266_GPIO.h"
 #elif defined(ESP8266_SSID_SMARTCONFIG)
   #include "ESP8266_SMARTCONFIG.h"
 #elif defined(ESP8266_SSID_WEBCONFIG)
   #include "ESP8266_MDNS.h"
   #include "ESP8266_TCP_SERVER.h"
-  #include "ESP8266_WEBCONFIG.h"
 #endif
+
 
 //CUSTOM VARIABLE STRUCTURES/////////////////////////////
 typedef enum
@@ -50,25 +82,19 @@ typedef enum
 typedef struct
 {
     char* ssid_name;
-    uint8_t ssid_name_len;
     char* ssid_pwd;
-    uint8_t ssid_pwd_len;
 }ESP8266_SSID_FRAMEWORK_HARDCODED_SSID_DETAILS;
 
 typedef struct
 {
     uint32_t ssid_name_addr;
-    uint8_t ssid_name_len;
     uint32_t ssid_pwdaddr;
-    uint8_t ssid_pwd_len;
 }ESP8266_SSID_FRAMEWORK_FLASH_SSID_DETAILS;
 
 typedef struct
 {
     uint32_t ssid_name_addr;
-    uint8_t ssid_name_len;
     uint32_t ssid_pwdaddr;
-    uint8_t ssid_pwd_len;
 }ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS;
 
 typedef enum
@@ -97,7 +123,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_led_toggle_cb(void* pArg);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_connect_timer_cb(void* pArg);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_event_handler_cb(System_Event_t* event);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(void);
-void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(void);
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(struct station_config* sconfig);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_softap(void);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_path_config_cb(void);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* data, uint16_t len, uint8_t post_flag);

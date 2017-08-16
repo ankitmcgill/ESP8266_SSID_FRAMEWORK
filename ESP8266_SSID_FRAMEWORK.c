@@ -1,7 +1,40 @@
 /*************************************************
 * ESP8266 SSID CONNECT FRAMEWORK
+* SOFT AP DETAILS
+* //SSID = ESP8266 | PASSWORD = 123456789
 *
-* AUGUST 13 2016
+* SET THE WIFI RECONNECT INTERVAL TO ATLEAST
+* 4000ms (4 s), SO AS TO GIVE ENOUGH TIME TO
+* ESP8266 TO CONNECT TO WIFI
+*
+*  INPUT_MODE        TRIGGER                   IF NOT ABLE TO CONNECT TO WIFI
+*  ----------        --------------            -----------------------------------------------
+*
+*  GPIO              GPIO PIN HIGH             - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*                                                OR IN TCP WEBSERVER
+*                                              - WIFI CONNECT SUCCESSFULL
+*                                              - AUTO CONNECT ON RESTART FROM INTERNAL SSID CACHE
+*
+*  HARDCODED         NOT ABLE TO CONNECT       - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*                    TO HARDCODED SSID           OR IN TCP WEBSERVER
+*                                              - WIFI CONNECT SUCCESSFULL
+*                                              - ON RESTART CHECK FOR VALID SSID CACHE. IF FOUND
+*                                                CONNECT USING THAT ELSE USE HARDCODED ONE
+*
+*  INTERNAL          NOT ABLE TO CONNECT       - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*                    TO INTERNALLY CACHED        OR IN TCP WEBSERVER
+*                    SSID                      - WIFI CONNECT SUCCESSFULL
+*                                              - AUTO CONNECT ON RESTART FROM INTERNAL SSID CACHE
+*
+*  FLASH             NOT ABLE TO CONNECT       - START SSID FRAMEWORK EITHER IN SMARTCONFIG
+*  EEPROM            TO SSID READ FROM           OR IN TCP WEBSERVER
+*                    FLASH/EEPROM AT GIVEN     - WIFI CONNECT SUCCESSFULL
+*                    ADDRESS                   - SAVE WIFI CREDENTIAL TO FLASH/EEPROM
+*                                              - ON RESTART, AGAIN READ FLASH/EEPROM ADDRESS
+*                                                AND CONNECT TO READ SSID
+*
+*
+* AUGUST 13 2017
 *
 * ANKIT BHATNAGAR
 * ANKIT.BHATNAGARINDIA@GMAIL.COM
@@ -53,7 +86,9 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
 {
     //SET THE SSID FRAMEWORK SSID INPUT MODE AND SSID CONFIGURATION MODE
     //VOID POINTER user_data INTERPRETED / CASTED AS PER MODE
-
+    //
+    //IMPORTANT : SINCE ESP8266 TAKES SOME TIME TO CONNECT TO WIFI, SET WIFI RETRY DELAY
+    // TO ATLEAST 4000ms (4 SECONDS)!!
     _input_mode = input_mode;
     _config_mode = config_mode;
 
@@ -67,19 +102,19 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_HARDCODED:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = HARDCODED\n");
-                ESP8266_SSID_FRAMEWORK_HARDCODED_SSID_DETAILS _ssid_hardcoded_name_pwd = *(ESP8266_SSID_FRAMEWORK_HARDCODED_SSID_DETAILS*)user_data;
+                _ssid_hardcoded_name_pwd = *(ESP8266_SSID_FRAMEWORK_HARDCODED_SSID_DETAILS*)user_data;
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_FLASH:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = FLASH\n");
-                ESP8266_SSID_FRAMEWORK_FLASH_SSID_DETAILS _ssid_flash_name_pwd = *(ESP8266_SSID_FRAMEWORK_FLASH_SSID_DETAILS*)user_data;
+                _ssid_flash_name_pwd = *(ESP8266_SSID_FRAMEWORK_FLASH_SSID_DETAILS*)user_data;
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_EEPROM:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = EEPROM\n");
-                ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS _ssid_eeprom_name_pwd = *(ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS*)user_data;
+                _ssid_eeprom_name_pwd = *(ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS*)user_data;
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_INTERNAL:
@@ -104,7 +139,6 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
         case ESP8266_SSID_FRAMEWORK_CONFIG_SMARTCONFIG:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : CONFIG MODE = SMARTCONFIG\n");
-                //ESP8266_SMARTCONFIG_SetDebug(1);
             break;
 
         case ESP8266_SSID_FRAMEWORK_CONFIG_WEBCONFIG:
@@ -151,8 +185,9 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_Initialize(void)
     wifi_set_event_handler_cb(_esp8266_ssid_framework_wifi_event_handler_cb);
 
     //SPECIAL CASE: CHECK FOR GPIO TRIGGER IF FRAMEWORK INPUT = GPIO
-    if(ESP8266_GPIO_Get_Value(_ssid_gpio_trigger_pin) == 1)
+    if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO && ESP8266_GPIO_Get_Value(_ssid_gpio_trigger_pin) == 1)
     {
+        //GPIO TRIGGERED. START SSID CONFIG
         if(_esp8266_ssid_framework_debug)
         {
             os_printf("ESP8266 : SSID FRAMEWORK : GPIO input triggered !\n");
@@ -161,9 +196,8 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_Initialize(void)
     }
     else
     {
-        //START WIFI CONNECTION PROCESS
-
-        _esp8266_ssid_framework_wifi_start_connection_process();
+        //START WIFI CONNECTION ATTEMPT
+        _esp8266_ssid_framework_wifi_start_connection_process(NULL);
     }
 }
 
@@ -197,7 +231,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_connect_timer_cb(void* pArg)
             //ALL TRIES EXPIRED
             if(_esp8266_ssid_framework_debug)
             {
-                os_printf("ESP8266 : SSID FRAMEWORK : wifi connection tries finished", _ssid_connect_retry_count);
+                os_printf("ESP8266 : SSID FRAMEWORK : wifi connection tries finished\n", _ssid_connect_retry_count);
             }
 
             //DISARM THE TIMER
@@ -209,7 +243,11 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_connect_timer_cb(void* pArg)
         else
         {
             //ATTEMPT CONNECT TO WIFI AGAIN
-            wifi_station_disconnect();
+            struct station_config* sconfig = (struct station_config*)pArg;
+            if(sconfig != NULL)
+            {
+                wifi_station_set_config(sconfig);
+            }
             wifi_station_connect();
         }
     }
@@ -228,6 +266,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_event_handler_cb(System_Even
     switch(event->event)
     {
         case EVENT_STAMODE_CONNECTED:
+            _esp8266_ssid_framework_wifi_connected = 1;
             if(_esp8266_ssid_framework_debug)
             {
                 os_printf("ESP8266 : SSID FRAMEWORK : wifi event CONNECTED\n");
@@ -287,7 +326,6 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
     if(_config_mode == ESP8266_SSID_FRAMEWORK_CONFIG_SMARTCONFIG)
     {
         //START SMARTCONFIG
-
         if(_esp8266_ssid_framework_debug)
         {
             os_printf("ESP8266 : SSID FRAMEWORK : Starting config = smartconfig\n");
@@ -298,9 +336,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
     }
     else if(_config_mode == ESP8266_SSID_FRAMEWORK_CONFIG_WEBCONFIG)
     {
-        //START WEBCONFIG
-
-        #include "ESP8266_TCP_SERVER.h"
+        //START TCP SERVER WEBCONFIG
         if(_esp8266_ssid_framework_debug)
         {
             os_printf("ESP8266 : SSID FRAMEWORK : Starting config = webconfig\n");
@@ -324,7 +360,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
         config_path.path_string = "/config";
         config_path.path_cb_fn = _esp8266_ssid_framework_tcp_server_path_config_cb;
         config_path.path_found = 0;
-         const char *config_page = {
+        const char *config_page = {
            "HTTP/1.1 200 OK\r\n"
            "Connection: Closed\r\n"
            "Content-type: text/html"
@@ -353,23 +389,90 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
     }
 }
 
-void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(void)
+void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(struct station_config* sconfig)
 {
     //START WIFI CONNECTION PROCESS
     //IF CONNECTION FAILS AFTER CONFIGURED NUMBER OF TIMES, SSID CONFIGURAION STARTS
 
-    wifi_set_opmode(STATION_MODE);
-    wifi_station_set_auto_connect(FALSE);
-    wifi_station_set_reconnect_policy(FALSE);
+    struct station_config config;
 
     _esp8266_ssid_framework_wifi_connected = 0;
     _ssid_connect_retry_count = 1;
 
-    //SETUP WIFI CONNECTION TIMER
-    os_timer_setfn(&_wifi_connect_timer, _esp8266_ssid_framework_wifi_connect_timer_cb, NULL);
-    os_timer_arm(&_wifi_connect_timer, _ssid_connect_retry_delay_ms, 0);
+    wifi_set_opmode(STATION_MODE);
+    os_delay_us(100);
+    wifi_station_set_auto_connect(FALSE);
+    wifi_station_set_reconnect_policy(FALSE);
+
+    switch(_input_mode)
+    {
+        case ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO:
+        case ESP8266_SSID_FRAMEWORK_SSID_INPUT_INTERNAL:
+            //DO NOTHING. SIMPLY ATTEMP TO CONNECT TO WIFI
+            break;
+
+        case ESP8266_SSID_FRAMEWORK_SSID_INPUT_HARDCODED:
+            //CHECK IF ESP8266 HAS VALID INTERNAL STORED WIFI CREDENTIALS
+            //IF PRESENT, USE THOSE TO ATTEMPT TO CONNECT TO WIFI
+            //IF NOT PRESENT, USE THE HARDCODED SSID DATA
+            if(wifi_station_get_config_default(&config))
+            {
+                os_printf("hardcoded : internal saved ssid = %s\n", config.ssid);
+
+                //CHECK IF RETREIVED INTERNAL CONFIG VALID
+                //IF NOT, USE HARDCODED SSID DETAILS
+                if(strcmp(config.ssid, "") != 0)
+                {
+                    //USE INTERNAL CREDENTIALS
+                    //SO DO NOTHING
+                }
+                else
+                {
+                    os_printf("hardcoded : internal saved ssid invalid. using hardcoded ssid\n");
+                    os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_name);
+                    os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_pwd);
+                    //USE HARDCODED CREDENTIALS
+                    os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+                    os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+                    os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, strlen(_ssid_hardcoded_name_pwd.ssid_name));
+                    os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, strlen(_ssid_hardcoded_name_pwd.ssid_pwd));
+                    wifi_station_set_config(&config);
+                }
+            }
+            else
+            {
+                //START WIFI WITH HARDCODED CREDENTIALS
+                os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+                os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+                os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+                os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+            }
+            break;
+
+        case ESP8266_SSID_FRAMEWORK_SSID_INPUT_FLASH:
+            //READ SSID/PSWD FROM SPECIFIED FLASH ADDRESS
+            //USE THOSE TO ATTEMPT TO CONNECT TO SSID
+            break;
+
+        case ESP8266_SSID_FRAMEWORK_SSID_INPUT_EEPROM:
+            //READ SSID/PSWD FROM SPECIFIED EEPROM ADDRESS
+            //USE THOSE TO ATTEMPT TO CONNECT TO SSID
+            break;
+    }
+
+    if(sconfig != NULL)
+    {
+        os_printf("------------ %s\n", sconfig->ssid);
+        os_printf("------------ %s\n", sconfig->password);
+        wifi_station_set_config(sconfig);
+    }
 
     wifi_station_connect();
+    wifi_station_dhcpc_start();
+
+    //SETUP WIFI CONNECTION TIMER
+    os_timer_setfn(&_wifi_connect_timer, _esp8266_ssid_framework_wifi_connect_timer_cb, sconfig);
+    os_timer_arm(&_wifi_connect_timer, _ssid_connect_retry_delay_ms, 0);
 }
 
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_softap(void)
@@ -379,17 +482,17 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_softap(void)
 
     struct softap_config config;
 
-    wifi_set_opmode(STATIONAP_MODE);
+    wifi_set_opmode(SOFTAP_MODE);
 
     wifi_softap_get_config(&config);
-    os_memset(config.ssid, 0, 32);
-    os_memset(config.password, 0, 64);
+    os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+    os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
     os_memcpy(config.ssid, "ESP8266", 7);
     os_memcpy(config.password, "12345678", 8);
     config.authmode = AUTH_WEP;
     config.ssid_hidden = 0;
     config.max_connection = 2;
-    wifi_softap_set_config(&config);
+    wifi_softap_set_config_current(&config);
 }
 
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_path_config_cb(void)
@@ -416,25 +519,62 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
       }
 
       //EXTRACT SSID NAME / PASSWORD
-      char ssid_name[32];
-      char ssid_pswd[32];
+      char ssid_name[ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN];
+      char ssid_pswd[ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN];
 
       char* config_str = strstr(data, "ssid=");
       char* ptr1 = strchr(config_str, '=');
       char* ptr2 = strchr(config_str, '&');
       char* ptr3 = strstr(ptr2, "=");
 
-      if(ptr2 == (ptr1 + 1) || ptr3 == (ptr2 + 1))
+      strncpy(ssid_name, ptr1 + 1, (ptr2 - ptr1 - 1));
+      strncpy(ssid_pswd, ptr3 + 1, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+
+      //NULL TERMINATE SSID NAME STRING
+      ssid_name[(ptr2 - ptr1 - 1)] = '\0';
+
+      if(strcmp(ssid_name, "") == 0 || strcmp(ssid_pswd, "") == 0)
       {
           //EITHER THE SSID OR PASSWORD EMPTY
           os_printf("ESP8266 : SSID FRAMEWORK : Either ssid or password empty\n");
           return;
       }
 
-      strncpy(ssid_name, ptr1 + 1, (ptr2 - ptr1 - 1));
-      strncpy(ssid_pswd, ptr3 + 1, 32);
-
       os_printf("ESP8266 : SSID FRAMEWORK : SSID name : %s\n", ssid_name);
       os_printf("ESP8266 : SSID FRAMEWORK : SSID passsword : %s\n", ssid_pswd);
+      os_printf("ESP8266 : SSID FRAMEWORK : Connecting to SSID ...\n", ssid_pswd);
+
+      //DEPENDING ON INPUT MODE, SAVE THE CREDENTIALS
+      if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_HARDCODED ||
+          _input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO ||
+          _input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_INTERNAL)
+      {
+          //NO NEED TO SAVE, JUST RESTART WIFI CONNECTION PROCESS WITH NEW CREDENTIALS
+          //LET THE ESP8266 CACHE THE CREDENTIALS INTERNALLY
+          struct station_config sconfig;
+          os_memset(sconfig.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+          os_memset(sconfig.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+          os_memcpy(&sconfig.ssid, ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+          os_memcpy(&sconfig.password, ssid_pswd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+
+          //STOP MDNS
+          ESP8266_MDNS_Stop();
+
+          //STOP TCP SERVER
+          ESP8266_TCP_SERVER_Stop();
+
+          //START WIFI CONNECTION ATTEMPT
+          wifi_softap_dhcps_stop();
+          _esp8266_ssid_framework_wifi_start_connection_process(&sconfig);
+
+      }
+      else if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_FLASH)
+      {
+          //SAVE CREDENTILS IN FLASH LOCATION
+      }
+      else if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_EEPROM)
+      {
+          //SAVE CREDENTIALS IN EEPROM LOCATION
+      }
     }
 }
