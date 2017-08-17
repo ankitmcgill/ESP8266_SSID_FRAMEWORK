@@ -1,7 +1,8 @@
 /*************************************************
 * ESP8266 SSID CONNECT FRAMEWORK
+*
 * SOFT AP DETAILS
-* //SSID = ESP8266 | PASSWORD = 123456789
+* SSID = ESP8266 | PASSWORD = 123456789
 *
 * SET THE WIFI RECONNECT INTERVAL TO ATLEAST
 * 4000ms (4 s), SO AS TO GIVE ENOUGH TIME TO
@@ -34,6 +35,12 @@
 *                                                AND CONNECT TO READ SSID
 *
 *
+*
+* REFERENCES
+* -----------
+*   (1) ONLINE HTML EDITOR
+*       http://bestonlinehtmleditor.com/
+*
 * AUGUST 13 2017
 *
 * ANKIT BHATNAGAR
@@ -56,6 +63,11 @@ static uint8_t _led_gpio_pin;
 os_timer_t _status_led_timer;
 os_timer_t _wifi_connect_timer;
 
+//HTML DATA RELEATED
+static char* _config_page_html;
+char* _user_data_ptrs[ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT];
+static ESP8266_SSID_FRAMEWORK_CONFIG_USER_FIELD_GROUP* _custom_user_field_group;
+
 //SSID RELATED
 static uint8_t _ssid_connect_retries;
 static uint8_t _ssid_connect_retry_count;
@@ -66,8 +78,7 @@ static ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS _ssid_eeprom_name_pwd;
 static uint8_t _ssid_gpio_trigger_pin;
 
 //CB FUNCTIONS
-static void (*_esp8266_ssid_framework_wifi_connected_user_cb)(void);
-
+static void (*_esp8266_ssid_framework_wifi_connected_user_cb)(char**);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////
 
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetDebug(uint8_t debug_on)
@@ -80,6 +91,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetDebug(uint8_t debug_on)
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWORK_SSID_INPUT_MODE input_mode,
                                                             ESP8266_SSID_FRAMEWORK_CONFIG_MODE config_mode,
                                                             void* user_data,
+                                                            ESP8266_SSID_FRAMEWORK_CONFIG_USER_FIELD_GROUP* user_field_data,
                                                             uint8_t retry_count,
                                                             uint32_t retry_delay_ms,
                                                             uint8_t gpio_led_pin)
@@ -89,6 +101,16 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
     //
     //IMPORTANT : SINCE ESP8266 TAKES SOME TIME TO CONNECT TO WIFI, SET WIFI RETRY DELAY
     // TO ATLEAST 4000ms (4 SECONDS)!!
+
+    _custom_user_field_group = user_field_data;
+
+    if(user_field_data->custom_fields_count > ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT)
+    {
+      if(_esp8266_ssid_framework_debug)
+          os_printf("ESP8266 : SSID FRAMEWORK : Max %u custom fields allowed! Aborting\n", ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT);
+      return;
+    }
+
     _input_mode = input_mode;
     _config_mode = config_mode;
 
@@ -102,19 +124,19 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_HARDCODED:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = HARDCODED\n");
-                _ssid_hardcoded_name_pwd = *(ESP8266_SSID_FRAMEWORK_HARDCODED_SSID_DETAILS*)user_data;
+            _ssid_hardcoded_name_pwd = *(ESP8266_SSID_FRAMEWORK_HARDCODED_SSID_DETAILS*)user_data;
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_FLASH:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = FLASH\n");
-                _ssid_flash_name_pwd = *(ESP8266_SSID_FRAMEWORK_FLASH_SSID_DETAILS*)user_data;
+            _ssid_flash_name_pwd = *(ESP8266_SSID_FRAMEWORK_FLASH_SSID_DETAILS*)user_data;
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_EEPROM:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = EEPROM\n");
-                _ssid_eeprom_name_pwd = *(ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS*)user_data;
+            _ssid_eeprom_name_pwd = *(ESP8266_SSID_FRAMEWORK_EEPROM_SSID_DETAILS*)user_data;
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_INTERNAL:
@@ -125,9 +147,9 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO:
             if(_esp8266_ssid_framework_debug)
                 os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = GPIO\n");
-                _ssid_gpio_trigger_pin = *(uint8_t*)user_data;
-                //SET TRIGGER GPIO AS INPUT
-                ESP8266_GPIO_Set_Direction(_ssid_gpio_trigger_pin, 0);
+            _ssid_gpio_trigger_pin = *(uint8_t*)user_data;
+            //SET TRIGGER GPIO AS INPUT
+            ESP8266_GPIO_Set_Direction(_ssid_gpio_trigger_pin, 0);
             break;
 
         default:
@@ -157,7 +179,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
     os_timer_setfn(&_status_led_timer, _esp8266_ssid_framework_led_toggle_cb, NULL);
 }
 
-void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetCbFunctions(void (*wifi_connected_cb)(void))
+void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetCbFunctions(void (*wifi_connected_cb)(char**))
 {
     //SET THE USER CB FUNCTION TO BE CALLED WHEN THE WIFI IS CONNECTED
 
@@ -177,6 +199,9 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_Initialize(void)
     {
         os_printf("ESP8266 : SSID FRAMEWORK : Running !\n");
     }
+
+    //ALLOCATE BUFFER FOR CONFIG PAGE HTML
+    _config_page_html = (char*)os_zalloc(3000);
 
     //START LED TOGGLE @ 250ms
     os_timer_arm(&_status_led_timer, 250, 1);
@@ -296,7 +321,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_event_handler_cb(System_Even
             ESP8266_GPIO_Set_Value(_led_gpio_pin, 0);
             if(_esp8266_ssid_framework_wifi_connected_user_cb != NULL)
             {
-                (*_esp8266_ssid_framework_wifi_connected_user_cb)();
+                (*_esp8266_ssid_framework_wifi_connected_user_cb)(_user_data_ptrs);
             }
             break;
         case EVENT_SOFTAPMODE_STACONNECTED:
@@ -360,25 +385,75 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
         config_path.path_string = "/config";
         config_path.path_cb_fn = _esp8266_ssid_framework_tcp_server_path_config_cb;
         config_path.path_found = 0;
-        const char *config_page = {
-           "HTTP/1.1 200 OK\r\n"
-           "Connection: Closed\r\n"
-           "Content-type: text/html"
-           "\r\n\r\n"
-           "<html><head><title>ESP8266 POWER OUTAGE LOGGER - Config</title>"
-           "</head>"
-           "<body>"
-           "<h3>ESP8266 POWER OUTAGE LOGGER - Config</h3>"
-           "<form action=\"/config\" method=\"POST\">"
-           "SSID : <input type=\"text\" name=\"ssid\">"
-           "<br><br>"
-           "PASSWORD : <input type=\"text\" name=\"password\">"
-           "<br><br>"
-            "<input type=\"submit\" value=\"Save\">"
-           "</form>"
-           "</body></html>"
-        };
-        config_path.path_response = config_page;
+
+        //GENERATE THE CONFIG PAGE HTML
+        strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
+                                  "Connection: Closed\r\n"
+                                  "Content-type: text/html"
+                                  "\r\n\r\n"
+                                  "<html><head><title>ESP8266 POWER OUTAGE LOGGER - Config</title>"
+                                  "</head>"
+                                  "<body>"
+                                  "<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" style=\"width:420px;\">"
+                                  "<tbody>"
+                                  "<tr>"
+                                  "<td style=\"text-align: left; vertical-align: middle; background-color: rgb(204, 51, 51);\"><span style=\"color:#FFFFFF;\"><strong><span style=\"font-size: 18px;\">ESP8266 : POWER OUTTAGE LOGGER - Config</span></strong></span>​</td>"
+                                  "</tr>"
+                                  "</tbody>"
+                                  "</table>"
+                                  "<form action=\"/config\" method=\"POST\">"
+                                  "<table align=\"left\" border=\"0\" cellpadding=\"1\" cellspacing=\"1\" style=\"width:420px;\">"
+                                  "<tbody>"
+                                  "<tr>"
+                                  "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>Basic Configuration</strong></span></td>"
+                                  "</tr>"
+                                  "<tr>"
+                                  "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\"><span style=\"color:#FFFFFF;\">SSID</span></td>"
+                                  "<td><input name=\"ssid\" type=\"text\" /></td>"
+                                  "</tr>"
+                                  "<tr>"
+                                  "<td style=\"background-color: rgb(0, 0, 0);\"><span style=\"color:#FFFFFF;\">PASSWORD</span></td>"
+                                  "<td><input name=\"password\" type=\"text\" /></td>"
+                                  "</tr>"
+                                  "<tr>"
+                                  "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>Additional Configuration</strong></span></td>"
+                                  "</tr>"
+                                  );
+      uint32_t len_occupied = strlen(_config_page_html);
+
+      //ADD CUSTOM CONFIG FIELDS IF ANY
+      if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
+      {
+          //USER CUSTOM FIELDS PRESENT
+          uint8_t i = 0;
+          char* row_line = (char*)os_zalloc(200);
+          const char* row_format_string = "<tr><td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                          "<span style=\"color:#FFFFFF;\">%s</span></td><td><input name=\"%s\" type=\"text\" />"
+                                          "</td></tr>";
+          while(i < _custom_user_field_group->custom_fields_count)
+          {
+              os_sprintf(row_line, row_format_string,
+                                (_custom_user_field_group->custom_fields + i)->custom_field_label,
+                                (_custom_user_field_group->custom_fields + i)->custom_field_name);
+              strcpy(_config_page_html + len_occupied, row_line);
+              len_occupied += strlen(row_line);
+
+              i++;
+          }
+          os_free(row_line);
+      }
+
+      //APPEND ENDING HTML
+      strcpy((_config_page_html) + len_occupied, "<tr>"
+                                                 "<td colspan=\"2\" style=\"text-align: right; vertical-align: middle;\"><input type=\"submit\" value=\"Save\" /></td>"
+                                                 "</tr>"
+                                                 "</tbody>"
+                                                 "</table>"
+                                                 "</form>"
+                                                 "</body></html>"
+                                                );
+
+        config_path.path_response = _config_page_html;
         ESP8266_TCP_SERVER_RegisterUrlPathCb(config_path);
 
         ESP8266_TCP_SERVER_Start();
@@ -462,9 +537,9 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
 
     if(sconfig != NULL)
     {
-        os_printf("------------ %s\n", sconfig->ssid);
-        os_printf("------------ %s\n", sconfig->password);
         wifi_station_set_config(sconfig);
+        os_printf("ssid = %s**\n", sconfig->ssid);
+        os_printf("pswd = %s**\n", sconfig->password);
     }
 
     wifi_station_connect();
@@ -518,20 +593,46 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
           os_printf("ESP8266 : SSID FRAMEWORK : SSID configuration data received!\n");
       }
 
-      //EXTRACT SSID NAME / PASSWORD
-      char ssid_name[ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN];
-      char ssid_pswd[ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN];
+      //EXTRACT SSID NAME / PASSWORD / CUSTOM FIELDS (IF ANY)
+      char* ssid_name = (char*)os_zalloc(ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+      char* ssid_pswd = (char*)os_zalloc(ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+      char* user_ptrs[ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT];
 
       char* config_str = strstr(data, "ssid=");
-      char* ptr1 = strchr(config_str, '=');
-      char* ptr2 = strchr(config_str, '&');
-      char* ptr3 = strstr(ptr2, "=");
+      char* ptr1 = strtok(config_str, "&");
+      char* ptr2 = strtok(NULL, "&");
 
-      strncpy(ssid_name, ptr1 + 1, (ptr2 - ptr1 - 1));
-      strncpy(ssid_pswd, ptr3 + 1, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+      uint8_t i = 0;
+      if(_custom_user_field_group != NULL)
+      {
+          while (i < _custom_user_field_group->custom_fields_count)
+          {
+              user_ptrs[i] = strtok(NULL, "&");
+              i++;
+          }
+      }
 
-      //NULL TERMINATE SSID NAME STRING
-      ssid_name[(ptr2 - ptr1 - 1)] = '\0';
+      //EXTRACT SSID / PSWD
+      strtok(ptr1, "=");
+      char* ssid = strtok(NULL, "=");
+
+      strtok(ptr2, "=");
+      char* pswd = strtok(NULL, "=");
+
+      //EXTRACT CUSTOM FIELDS DATA
+      i = 0;
+      if(_custom_user_field_group != NULL)
+      {
+          while (i < _custom_user_field_group->custom_fields_count)
+          {
+              strtok(user_ptrs[i], "=");
+              _user_data_ptrs[i] = strtok(NULL, "=");
+              i++;
+          }
+      }
+
+      strncpy(ssid_name, ssid, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+      strncpy(ssid_pswd, pswd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
 
       if(strcmp(ssid_name, "") == 0 || strcmp(ssid_pswd, "") == 0)
       {
@@ -551,11 +652,11 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
       {
           //NO NEED TO SAVE, JUST RESTART WIFI CONNECTION PROCESS WITH NEW CREDENTIALS
           //LET THE ESP8266 CACHE THE CREDENTIALS INTERNALLY
-          struct station_config sconfig;
-          os_memset(sconfig.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
-          os_memset(sconfig.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
-          os_memcpy(&sconfig.ssid, ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
-          os_memcpy(&sconfig.password, ssid_pswd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+          struct station_config config;
+          os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+          os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+          os_memcpy(&config.ssid, ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
+          os_memcpy(&config.password, ssid_pswd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
 
           //STOP MDNS
           ESP8266_MDNS_Stop();
@@ -565,8 +666,10 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
 
           //START WIFI CONNECTION ATTEMPT
           wifi_softap_dhcps_stop();
-          _esp8266_ssid_framework_wifi_start_connection_process(&sconfig);
+          _esp8266_ssid_framework_wifi_start_connection_process(&config);
 
+          os_free(ssid_name);
+          os_free(ssid_pswd);
       }
       else if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_FLASH)
       {
