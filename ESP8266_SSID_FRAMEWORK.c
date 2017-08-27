@@ -104,7 +104,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
 
     _custom_user_field_group = user_field_data;
 
-    if(user_field_data->custom_fields_count > ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT)
+    if(user_field_data!= NULL && user_field_data->custom_fields_count > ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT)
     {
       if(_esp8266_ssid_framework_debug)
           os_printf("ESP8266 : SSID FRAMEWORK : Max %u custom fields allowed! Aborting\n", ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT);
