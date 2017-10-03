@@ -99,7 +99,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
                                                             uint8_t retry_count,
                                                             uint32_t retry_delay_ms,
                                                             uint8_t gpio_led_pin,
-																														char* project_name;)
+																														char* project_name)
 {
     //SET THE SSID FRAMEWORK SSID INPUT MODE AND SSID CONFIGURATION MODE
     //VOID POINTER user_data INTERPRETED / CASTED AS PER MODE
@@ -416,11 +416,11 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																	"<div class=\"col-md-12 py-1\">"
 																	"<h2 class=\"\">&lt;");
 				//ADD PROJECT NAME
-				strcpy(_config_page_html[os_strlen(_config_page_html)], _project_name);
-				strcpy(_config_page_html[os_strlen(_config_page_html)], "&gt;</h2>");
+				strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
+				strcpy(&_config_page_html[os_strlen(_config_page_html)], "&gt;</h2>");
 
 				//ADD COMMON CONFIGURATION
-				strcpy(_config_page_html[os_strlen(_config_page_html)], "</div>"
+				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
 																																"</div>"
 																																"</div>"
 																																"</div>"
@@ -458,16 +458,14 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
               os_sprintf(row_line, row_format_string,
                                 (_custom_user_field_group->custom_fields + i)->custom_field_name,
                                 (_custom_user_field_group->custom_fields + i)->custom_field_label);
-              strcpy(_config_page_html + len_occupied, row_line);
-              len_occupied += strlen(row_line);
-
+              strcpy(&_config_page_html[os_strlen(_config_page_html)], row_line);
               i++;
           }
           os_free(row_line);
       }
 
       //ADD MORE HTML
-			strcpy(_config_page_html[os_strlen(_config_page_html)], "</div>"
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
 																															"</div>"
 																															"</div>"
 																															"</form>"
@@ -484,13 +482,13 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																															"<ul class=\"py-0\">");
 
 			//ADD SYSTEM PARAMS SECTION
-			strcpy(_config_page_html[os_strlen(_config_page_html)], "<li>CPU Frequency :&nbsp;</li>"
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>CPU Frequency :&nbsp;</li>"
 																															"<li>MAC Address :&nbsp;</li>"
 																															"<li>Flash Chip ID :&nbsp;</li>"
 																															"<li>Flash Map :&nbsp;</li>");
 
 			//ADD ENDING HTML
-			strcpy(_config_page_html[os_strlen(_config_page_html)], "</ul>"
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
 																															"</div>"
 																															"</div>"
 																															"</div>"
