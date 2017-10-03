@@ -61,6 +61,7 @@
 #define ESP8266_SSID_HARDCODED
 #define ESP8266_SSID_WEBCONFIG
 
+#define ESP8266_SSID_FRAMEWORK_WEBCONFIG_PATH_STRING		"/config"
 #define ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN            32
 #define ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN            64
 #define ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT   5
@@ -134,7 +135,9 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
                                                             ESP8266_SSID_FRAMEWORK_CONFIG_USER_FIELD_GROUP* user_field_data,
                                                             uint8_t retry_count,
                                                             uint32_t retry_delay_ms,
-                                                            uint8_t gpio_led_pin);
+                                                            uint8_t gpio_led_pin,
+																														char* project_name);
+
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetCbFunctions(void (*wifi_connected_cb)(char**));
 
 //OPERATION FUNCTIONS

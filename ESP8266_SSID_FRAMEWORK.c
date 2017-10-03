@@ -67,6 +67,7 @@ os_timer_t _wifi_connect_timer;
 static char* _config_page_html;
 char* _user_data_ptrs[ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT];
 static ESP8266_SSID_FRAMEWORK_CONFIG_USER_FIELD_GROUP* _custom_user_field_group;
+static char* _project_name;
 
 //SSID RELATED
 static uint8_t _ssid_connect_retries;
@@ -94,7 +95,8 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
                                                             ESP8266_SSID_FRAMEWORK_CONFIG_USER_FIELD_GROUP* user_field_data,
                                                             uint8_t retry_count,
                                                             uint32_t retry_delay_ms,
-                                                            uint8_t gpio_led_pin)
+                                                            uint8_t gpio_led_pin,
+																														char* project_name;)
 {
     //SET THE SSID FRAMEWORK SSID INPUT MODE AND SSID CONFIGURATION MODE
     //VOID POINTER user_data INTERPRETED / CASTED AS PER MODE
@@ -118,6 +120,8 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
 
     _ssid_connect_retries = retry_count;
     _ssid_connect_retry_delay_ms = retry_delay_ms;
+
+		_project_name = project_name;
 
     switch(input_mode)
     {
@@ -382,44 +386,62 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 
         //REGISTER PATH CALLBACKS
         ESP8266_TCP_SERVER_PATH_CB_ENTRY config_path;
-        config_path.path_string = "/config";
+        config_path.path_string = ESP8266_SSID_FRAMEWORK_WEBCONFIG_PATH_STRING;
         config_path.path_cb_fn = _esp8266_ssid_framework_tcp_server_path_config_cb;
         config_path.path_found = 0;
 
         //GENERATE THE CONFIG PAGE HTML
-        strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
+				strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
                                   "Connection: Closed\r\n"
                                   "Content-type: text/html"
                                   "\r\n\r\n"
-                                  "<html><head><title>ESP8266 POWER OUTAGE LOGGER - Config</title>"
-                                  "</head>"
-                                  "<body>"
-                                  "<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" style=\"width:420px;\">"
-                                  "<tbody>"
-                                  "<tr>"
-                                  "<td style=\"text-align: left; vertical-align: middle; background-color: rgb(204, 51, 51);\"><span style=\"color:#FFFFFF;\"><strong><span style=\"font-size: 18px;\">ESP8266 : POWER OUTTAGE LOGGER - Config</span></strong></span>​</td>"
-                                  "</tr>"
-                                  "</tbody>"
-                                  "</table>"
-                                  "<form action=\"/config\" method=\"POST\">"
-                                  "<table align=\"left\" border=\"0\" cellpadding=\"1\" cellspacing=\"1\" style=\"width:420px;\">"
-                                  "<tbody>"
-                                  "<tr>"
-                                  "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>Basic Configuration</strong></span></td>"
-                                  "</tr>"
-                                  "<tr>"
-                                  "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\"><span style=\"color:#FFFFFF;\">SSID</span></td>"
-                                  "<td><input name=\"ssid\" type=\"text\" /></td>"
-                                  "</tr>"
-                                  "<tr>"
-                                  "<td style=\"background-color: rgb(0, 0, 0);\"><span style=\"color:#FFFFFF;\">PASSWORD</span></td>"
-                                  "<td><input name=\"password\" type=\"text\" /></td>"
-                                  "</tr>"
-                                  "<tr>"
-                                  "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>Additional Configuration</strong></span></td>"
-                                  "</tr>"
-                                  );
-      uint32_t len_occupied = strlen(_config_page_html);
+																	"<!DOCTYPE html>"
+																	"<html>"
+																	"<head>"
+																	"<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
+																	"<title>ESP8266 Web Config</title>"
+																	"</head>"
+																	"<body>"
+																	"<div class=\"p-2 m-0 bg-dark text-white\">"
+																	"<div class=\"container\">"
+																	"<div class=\"row\">"
+																	"<div class=\"col-md-12\">"
+																	"<h1 class=\"\">ESP8266 Web Config</h1>"
+																	"</div>"
+																	"</div>"
+																	"<div class=\"row\">"
+																	"<div class=\"col-md-12 py-1\">"
+																	"<h2 class=\"\">&lt;");
+				//ADD PROJECT NAME
+				strcpy(_config_page_html[os_strlen(_config_page_html)], _project_name);
+				strcpy(_config_page_html[os_strlen(_config_page_html)], "&gt;</h2>");
+
+				//ADD COMMON CONFIGURATION
+				strcpy(_config_page_html[os_strlen(_config_page_html)], "</div>"
+																																"</div>"
+																																"</div>"
+																																"</div>"
+																																"<div class=\"p-2 m-0 bg-dark text-white\">"
+																																"<div class=\"container\">"
+																																"<div class=\"row\">"
+																																"<div class=\"col-md-12 py-0 my-0\">"
+																																"<p class=\"lead\"><i>Ankit Bhatnagar"
+																																"<br>ankit.bhatnagarindia@gmail.com</i></p>"
+																																"</div>"
+																																"</div>"
+																																"</div>"
+																																"</div>"
+																																"<div class=\"py-0\">"
+																																"<form class=\"\\&quot;form-inline\\&quot;\" method=\"\\&quot;post\\&quot;\" action=\"\\&quot;/config\\&quot;\">"
+																																"<div class=\"container py-3\">"
+																																"<div class=\"row\">"
+																																"<div class=\"col-md-6 border border-dark\">"
+																																"<p class=\"lead\"><b>Common</b></p>"
+																																"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" placeholder=\"SSID\">"
+																																"<input type=\"text\" name=\"password\" class=\"form-control my-2 w-75\" placeholder=\"PASSWORD\">"
+																																"<input type=\"submit\" class=\"btn my-3 text-center btn-success btn-sm w-50\"> </div>"
+																																"<div class=\"col-md-6 border border-dark\">"
+																																"<p class=\"lead\"><b>Project Specific</b></p>");
 
       //ADD CUSTOM CONFIG FIELDS IF ANY
       if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
@@ -427,14 +449,12 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
           //USER CUSTOM FIELDS PRESENT
           uint8_t i = 0;
           char* row_line = (char*)os_zalloc(200);
-          const char* row_format_string = "<tr><td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
-                                          "<span style=\"color:#FFFFFF;\">%s</span></td><td><input name=\"%s\" type=\"text\" />"
-                                          "</td></tr>";
+					const char* row_format_string = "<input type=\"text\" name=\"%s\" class=\"form-control w-75 my-2\" placeholder=\"%s\">";
           while(i < _custom_user_field_group->custom_fields_count)
           {
               os_sprintf(row_line, row_format_string,
-                                (_custom_user_field_group->custom_fields + i)->custom_field_label,
-                                (_custom_user_field_group->custom_fields + i)->custom_field_name);
+                                (_custom_user_field_group->custom_fields + i)->custom_field_name,
+                                (_custom_user_field_group->custom_fields + i)->custom_field_label);
               strcpy(_config_page_html + len_occupied, row_line);
               len_occupied += strlen(row_line);
 
@@ -443,15 +463,37 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
           os_free(row_line);
       }
 
-      //APPEND ENDING HTML
-      strcpy((_config_page_html) + len_occupied, "<tr>"
-                                                 "<td colspan=\"2\" style=\"text-align: right; vertical-align: middle;\"><input type=\"submit\" value=\"Save\" /></td>"
-                                                 "</tr>"
-                                                 "</tbody>"
-                                                 "</table>"
-                                                 "</form>"
-                                                 "</body></html>"
-                                                );
+      //ADD MORE HTML
+			strcpy(_config_page_html[os_strlen(_config_page_html)], "</div>"
+																															"</div>"
+																															"</div>"
+																															"</form>"
+																															"</div>"
+																															"<div class=\"bg-dark py-3\">"
+																															"<div class=\"container\">"
+																															"<div class=\"row\">"
+																															"<div class=\"col-md-12\">"
+																															"<h3 class=\"text-white\" contenteditable=\"true\">System Stats</h3>"
+																															"</div>"
+																															"</div>"
+																															"<div class=\"row\">"
+																															"<div class=\"col-md-12 text-white py-0\">"
+																															"<ul class=\"py-0\">");
+
+			//ADD SYSTEM PARAMS SECTION
+			strcpy(_config_page_html[os_strlen(_config_page_html)], "<li>CPU Frequency :&nbsp;</li>"
+																															"<li>MAC Address :&nbsp;</li>"
+																															"<li>Flash Chip ID :&nbsp;</li>"
+																															"<li>Flash Map :&nbsp;</li>");
+
+			//ADD ENDING HTML
+			strcpy(_config_page_html[os_strlen(_config_page_html)], "</ul>"
+																															"</div>"
+																															"</div>"
+																															"</div>"
+																															"</div>"
+																															"</body>"
+																															"</html>");
 
         config_path.path_response = _config_page_html;
         ESP8266_TCP_SERVER_RegisterUrlPathCb(config_path);
