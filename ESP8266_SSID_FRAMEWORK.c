@@ -414,10 +414,10 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																	"</div>"
 																	"<div class=\"row\">"
 																	"<div class=\"col-md-12 py-1\">"
-																	"<h2 class=\"\">&lt;");
+																	"<h2 class=\"\">");
 				//ADD PROJECT NAME
 				strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], "&gt;</h2>");
+				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</h2>");
 
 				//ADD COMMON CONFIGURATION
 				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
@@ -435,7 +435,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																																"</div>"
 																																"</div>"
 																																"<div class=\"py-0\">"
-																																"<form class=\"\\&quot;form-inline\\&quot;\" method=\"\\&quot;post\\&quot;\" action=\"\\&quot;/config\\&quot;\">"
+																																"<form class=\"\\&quot;form-inline\\&quot;\" method=\"POST\" action=\"/config\">"
 																																"<div class=\"container py-3\">"
 																																"<div class=\"row\">"
 																																"<div class=\"col-md-6 border border-dark\">"
@@ -482,10 +482,54 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																															"<ul class=\"py-0\">");
 
 			//ADD SYSTEM PARAMS SECTION
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>CPU Frequency :&nbsp;</li>"
-																															"<li>MAC Address :&nbsp;</li>"
-																															"<li>Flash Chip ID :&nbsp;</li>"
-																															"<li>Flash Map :&nbsp;</li>");
+			char* temp_str = (char*)os_zalloc(50);
+			uint8_t mac[6];
+			os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+			ESP8266_SYSINFO_GetSystemMac(mac);
+			os_sprintf(temp_str, "<li>MAC Address : %02X:%02X:%02X:%02X:%02X:%02X</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+			os_sprintf(temp_str, "<li>Flash Chip ID : 0x%X</li>", ESP8266_SYSINFO_GetFlashChipId());
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+			os_free(temp_str);
+
+			uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
+			switch(map)
+			{
+					case FLASH_SIZE_4M_MAP_256_256:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "Flash size : 4Mbits. Map : 256KBytes + 256KBytes");
+							break;
+					case FLASH_SIZE_2M:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
+							break;
+					case FLASH_SIZE_8M_MAP_512_512:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
+							break;
+					case FLASH_SIZE_16M_MAP_512_512:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
+							break;
+					case FLASH_SIZE_32M_MAP_512_512:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
+							break;
+					case FLASH_SIZE_16M_MAP_1024_1024:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
+							break;
+					/*case FLASH_SIZE_32M_MAP_1024_1024:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
+							break;
+					case FLASH_SIZE_32M_MAP_2048_2048:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
+							break;
+					case FLASH_SIZE_64M_MAP_1024_1024:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
+							break;
+					case FLASH_SIZE_128M_MAP_1024_1024:
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
+							break;*/
+			}
 
 			//ADD ENDING HTML
 			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
@@ -559,7 +603,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
             }
             else
             {
-                //START WIFI WITH HARDCODED CREDENTIALS
+                //START WIFI WITH HARDCODED SSID
                 os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
                 os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
                 os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
@@ -706,6 +750,9 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
 
           //STOP TCP SERVER
           ESP8266_TCP_SERVER_Stop();
+
+					//FREE MEMORY
+					os_free(_config_page_html);
 
           //START WIFI CONNECTION ATTEMPT
           wifi_softap_dhcps_stop();
