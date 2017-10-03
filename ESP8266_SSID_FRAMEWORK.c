@@ -40,6 +40,9 @@
 * -----------
 *   (1) ONLINE HTML EDITOR
 *       http://bestonlinehtmleditor.com/
+*		(2) BOOTSTRAP HTML GUI EDITOR
+*				http://http://pingendo.com/
+*				https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
 *
 * AUGUST 13 2017
 *
