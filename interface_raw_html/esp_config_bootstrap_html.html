@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css">
+  <title>ESP8266 Web Config</title>
+</head>
+
+<body>
+  <div class="p-2 m-0 bg-dark text-white">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h1 class="">ESP8266 Web Config</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12 py-1">
+          <h2 class="">&lt;Project Name&gt;</h2>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="p-2 m-0 bg-dark text-white">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12 py-0 my-0">
+          <p class="lead"><i>Ankit Bhatnagar
+            <br>ankit.bhatnagarindia@gmail.com</i></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="py-0">
+    <form class="\&quot;form-inline\&quot;" method="\&quot;post\&quot;" action="\&quot;/config\&quot;">
+      <div class="container py-3">
+        <div class="row">
+          <div class="col-md-6 border border-dark">
+            <p class="lead"><b>Common</b></p>
+            <input type="text" name="ssid" class="form-control my-2 w-75" placeholder="SSID">
+            <input type="text" name="password" class="form-control my-2 w-75" placeholder="PASSWORD">
+            <input type="submit" class="btn my-3 text-center btn-success btn-sm w-50"> </div>
+          <div class="col-md-6 border border-dark">
+            <p class="lead"><b>Project Specific</b></p>
+            <input type="text" name="user_1" class="form-control w-75 my-2" placeholder="user_1">
+            <input type="text" name="user_2" class="form-control my-2 w-75" placeholder="user_2">
+            <input type="text" name="user_3" class="form-control my-2 w-75" placeholder="user_3"> </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="bg-dark py-3">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+          <h3 class="text-white" contenteditable="true">System Stats</h3>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12 text-white py-0">
+          <ul class="py-0">
+            <li>CPU Frequency :&nbsp;</li>
+            <li>MAC Address :&nbsp;</li>
+            <li>Flash Chip ID :&nbsp;</li>
+            <li>Flash Map :&nbsp;</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
