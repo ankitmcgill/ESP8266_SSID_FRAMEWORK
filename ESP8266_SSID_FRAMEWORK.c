@@ -153,7 +153,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO:
             if(_esp8266_ssid_framework_debug)
-                os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = GPIO\n");
+                os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = GPIO @ pin %u\n", *(uint8_t*)user_data);
             _ssid_gpio_trigger_pin = *(uint8_t*)user_data;
             //SET TRIGGER GPIO AS INPUT
             ESP8266_GPIO_Set_Direction(_ssid_gpio_trigger_pin, 0);
@@ -439,12 +439,32 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																																"<div class=\"container py-3\">"
 																																"<div class=\"row\">"
 																																"<div class=\"col-md-6 border border-dark\">"
-																																"<p class=\"lead\"><b>Common</b></p>"
-																																"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" placeholder=\"SSID\">"
-																																"<input type=\"text\" name=\"password\" class=\"form-control my-2 w-75\" placeholder=\"PASSWORD\">"
-																																"<input type=\"submit\" class=\"btn my-3 text-center btn-success btn-sm w-50\"> </div>"
-																																"<div class=\"col-md-6 border border-dark\">"
-																																"<p class=\"lead\"><b>Project Specific</b></p>");
+																																"<p class=\"lead\"><b>Common</b></p>");
+			//ADD SSID / PASSWORD INPUT
+			//FILL WITH SAVED ONES IF PRESENT
+			struct station_config config;
+			char* temp_str = (char*)os_zalloc(150);
+			char* format_str = "<input type=\"text\" name=\"%s\" class=\"form-control my-2 w-75\" placeholder=\"%s\">";
+            wifi_station_get_config(&config);
+            if(strcmp(config.ssid, "") != 0 && strcmp(config.password,"") != 0)
+			{
+					//SAVED WIFI CREDENTIALS PRESENT
+					os_sprintf(temp_str, format_str, "ssid", config.ssid);
+					strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
+					os_sprintf(temp_str, format_str, "password", config.password);
+					strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
+			}
+			else
+			{
+					//NO SAVED WIFI CREDENTIALS PRESENT
+					strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" 							placeholder=\"SSID\">"
+					"<input type=\"text\" name=\"password\" class=\"form-control my-2 w-75\" placeholder=\"PASSWORD\">");
+			}
+
+			os_free(temp_str);
+			strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"submit\" class=\"btn my-3 text-center btn-success btn-sm w-50\"> </div>"
+																															"<div class=\"col-md-6 border border-dark\">"
+																															"<p class=\"lead\"><b>Project Specific</b></p>");
 
       //ADD CUSTOM CONFIG FIELDS IF ANY
       if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
@@ -482,7 +502,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 																															"<ul class=\"py-0\">");
 
 			//ADD SYSTEM PARAMS SECTION
-			char* temp_str = (char*)os_zalloc(50);
+			temp_str = (char*)os_zalloc(50);
 			uint8_t mac[6];
 			os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
 			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
