@@ -40,9 +40,9 @@
 * -----------
 *   (1) ONLINE HTML EDITOR
 *       http://bestonlinehtmleditor.com/
-*		(2) BOOTSTRAP HTML GUI EDITOR
-*				http://http://pingendo.com/
-*				https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
+*	(2) BOOTSTRAP HTML GUI EDITOR
+*		http://http://pingendo.com/
+*		https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
 *
 * AUGUST 13 2017
 *
@@ -83,6 +83,9 @@ static uint8_t _ssid_gpio_trigger_pin;
 
 //CB FUNCTIONS
 static void (*_esp8266_ssid_framework_wifi_connected_user_cb)(char**);
+
+//UTILITY FUNCTIONS
+static bool _esp8266_ssid_framework_check_valid_stationconfig(struct station_config* config);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////
 
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetDebug(uint8_t debug_on)
@@ -394,52 +397,53 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
         config_path.path_found = 0;
 
         //GENERATE THE CONFIG PAGE HTML
-				strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
-                                  "Connection: Closed\r\n"
-                                  "Content-type: text/html"
-                                  "\r\n\r\n"
-																	"<!DOCTYPE html>"
-																	"<html>"
-																	"<head>"
-																	"<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
-																	"<title>ESP8266 Web Config</title>"
-																	"</head>"
-																	"<body>"
-																	"<div class=\"p-2 m-0 bg-dark text-white\">"
-																	"<div class=\"container\">"
-																	"<div class=\"row\">"
-																	"<div class=\"col-md-12\">"
-																	"<h1 class=\"\">ESP8266 Web Config</h1>"
-																	"</div>"
-																	"</div>"
-																	"<div class=\"row\">"
-																	"<div class=\"col-md-12 py-1\">"
-																	"<h2 class=\"\">");
+        strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
+                                    "Connection: Closed\r\n"
+                                    "Content-type: text/html"
+                                    "\r\n\r\n"
+                                    "<!DOCTYPE html>"
+                                    "<html>"
+                                    "<head>"
+                                    "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
+                                    "<title>ESP8266 Web Config</title>"
+                                    "</head>"
+                                    "<body>"
+                                    "<div class=\"p-2 m-0 bg-dark text-white\">"
+                                    "<div class=\"container\">"
+                                    "<div class=\"row\">"
+                                    "<div class=\"col-md-12\">"
+                                    "<h1 class=\"\">ESP8266 Web Config</h1>"
+                                    "</div>"
+                                    "</div>"
+                                    "<div class=\"row\">"
+                                    "<div class=\"col-md-12 py-1\">"
+                                    "<h2 class=\"\">");
+
 				//ADD PROJECT NAME
 				strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
 				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</h2>");
 
 				//ADD COMMON CONFIGURATION
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
-																																"</div>"
-																																"</div>"
-																																"</div>"
-																																"<div class=\"p-2 m-0 bg-dark text-white\">"
-																																"<div class=\"container\">"
-																																"<div class=\"row\">"
-																																"<div class=\"col-md-12 py-0 my-0\">"
-																																"<p class=\"lead\"><i>Ankit Bhatnagar"
-																																"<br>ankit.bhatnagarindia@gmail.com</i></p>"
-																																"</div>"
-																																"</div>"
-																																"</div>"
-																																"</div>"
-																																"<div class=\"py-0\">"
-																																"<form class=\"\\&quot;form-inline\\&quot;\" method=\"POST\" action=\"/config\">"
-																																"<div class=\"container py-3\">"
-																																"<div class=\"row\">"
-																																"<div class=\"col-md-6 border border-dark\">"
-																																"<p class=\"lead\"><b>Common</b></p>");
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
+                                                                            "</div>"
+                                                                            "</div>"
+                                                                            "</div>"
+                                                                            "<div class=\"p-2 m-0 bg-dark text-white\">"
+                                                                            "<div class=\"container\">"
+                                                                            "<div class=\"row\">"
+                                                                            "<div class=\"col-md-12 py-0 my-0\">"
+                                                                            "<p class=\"lead\"><i>Ankit Bhatnagar"
+                                                                            "<br>ankit.bhatnagarindia@gmail.com</i></p>"
+                                                                            "</div>"
+                                                                            "</div>"
+                                                                            "</div>"
+                                                                            "</div>"
+                                                                            "<div class=\"py-0\">"
+                                                                            "<form class=\"\\&quot;form-inline\\&quot;\" method=\"POST\" action=\"/config\">"
+                                                                            "<div class=\"container py-3\">"
+                                                                            "<div class=\"row\">"
+                                                                            "<div class=\"col-md-6 border border-dark\">"
+                                                                            "<p class=\"lead\"><b>Common</b></p>");
 			//ADD SSID / PASSWORD INPUT
 			//FILL WITH SAVED ONES IF PRESENT
 			struct station_config config;
@@ -457,14 +461,14 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 			else
 			{
 					//NO SAVED WIFI CREDENTIALS PRESENT
-					strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" 							placeholder=\"SSID\">"
+					strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" placeholder=\"SSID\">"
 					"<input type=\"text\" name=\"password\" class=\"form-control my-2 w-75\" placeholder=\"PASSWORD\">");
 			}
 
 			os_free(temp_str);
 			strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"submit\" class=\"btn my-3 text-center btn-success btn-sm w-50\"> </div>"
-																															"<div class=\"col-md-6 border border-dark\">"
-																															"<p class=\"lead\"><b>Project Specific</b></p>");
+                                                                        "<div class=\"col-md-6 border border-dark\">"
+                                                                        "<p class=\"lead\"><b>Project Specific</b></p>");
 
       //ADD CUSTOM CONFIG FIELDS IF ANY
       if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
@@ -484,22 +488,22 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
           os_free(row_line);
       }
 
-      //ADD MORE HTML
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
-																															"</div>"
-																															"</div>"
-																															"</form>"
-																															"</div>"
-																															"<div class=\"bg-dark py-3\">"
-																															"<div class=\"container\">"
-																															"<div class=\"row\">"
-																															"<div class=\"col-md-12\">"
-																															"<h3 class=\"text-white\" contenteditable=\"true\">System Stats</h3>"
-																															"</div>"
-																															"</div>"
-																															"<div class=\"row\">"
-																															"<div class=\"col-md-12 text-white py-0\">"
-																															"<ul class=\"py-0\">");
+        //ADD MORE HTML
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
+                                                                    "</div>"
+                                                                    "</div>"
+                                                                    "</form>"
+                                                                    "</div>"
+                                                                    "<div class=\"bg-dark py-3\">"
+                                                                    "<div class=\"container\">"
+                                                                    "<div class=\"row\">"
+                                                                    "<div class=\"col-md-12\">"
+                                                                    "<h3 class=\"text-white\" contenteditable=\"true\">System Stats</h3>"
+                                                                    "</div>"
+                                                                    "</div>"
+                                                                    "<div class=\"row\">"
+                                                                    "<div class=\"col-md-12 text-white py-0\">"
+                                                                    "<ul class=\"py-0\">");
 
 			//ADD SYSTEM PARAMS SECTION
 			temp_str = (char*)os_zalloc(50);
@@ -553,12 +557,12 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 
 			//ADD ENDING HTML
 			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
-																															"</div>"
-																															"</div>"
-																															"</div>"
-																															"</div>"
-																															"</body>"
-																															"</html>");
+                                                                        "</div>"
+                                                                        "</div>"
+                                                                        "</div>"
+                                                                        "</div>"
+                                                                        "</body>"
+                                                                        "</html>");
 
         config_path.path_response = _config_page_html;
         ESP8266_TCP_SERVER_RegisterUrlPathCb(config_path);
@@ -597,37 +601,25 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
             //CHECK IF ESP8266 HAS VALID INTERNAL STORED WIFI CREDENTIALS
             //IF PRESENT, USE THOSE TO ATTEMPT TO CONNECT TO WIFI
             //IF NOT PRESENT, USE THE HARDCODED SSID DATA
-            if(wifi_station_get_config_default(&config))
+            wifi_station_get_config_default(&config);
+            if(_esp8266_ssid_framework_check_valid_stationconfig(&config))
             {
-                os_printf("hardcoded : internal saved ssid = %s\n", config.ssid);
-
-                //CHECK IF RETREIVED INTERNAL CONFIG VALID
-                //IF NOT, USE HARDCODED SSID DETAILS
-                if(strcmp(config.ssid, "") != 0)
-                {
-                    //USE INTERNAL CREDENTIALS
-                    //SO DO NOTHING
-                }
-                else
-                {
-                    os_printf("hardcoded : internal saved ssid invalid. using hardcoded ssid\n");
-                    os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_name);
-                    os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_pwd);
-                    //USE HARDCODED CREDENTIALS
-                    os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
-                    os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
-                    os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, strlen(_ssid_hardcoded_name_pwd.ssid_name));
-                    os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, strlen(_ssid_hardcoded_name_pwd.ssid_pwd));
-                    wifi_station_set_config(&config);
-                }
+                //USE INTERNAL CREDENTIALS
+                //SO DO NOTHING
+                os_printf("internal saved ssid valid. Using that\n");
+                os_printf("%s\n",config.ssid);
+                os_printf("%s\n",config.password);
             }
             else
             {
-                //START WIFI WITH HARDCODED SSID
+                os_printf("internal saved ssid invalid. using hardcoded ssid\n");
+                os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_name);
+                os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_pwd);
+                //USE HARDCODED CREDENTIALS
                 os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
                 os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
-                os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
-                os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+                os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, strlen(_ssid_hardcoded_name_pwd.ssid_name));
+                os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, strlen(_ssid_hardcoded_name_pwd.ssid_pwd));
             }
             break;
 
@@ -642,11 +634,12 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
             break;
     }
 
+    wifi_station_set_config(&config);
     if(sconfig != NULL)
     {
         wifi_station_set_config(sconfig);
-        os_printf("ssid = %s**\n", sconfig->ssid);
-        os_printf("pswd = %s**\n", sconfig->password);
+        os_printf("ssid = %s\n", sconfig->ssid);
+        os_printf("pswd = %s\n", sconfig->password);
     }
 
     wifi_station_connect();
@@ -771,8 +764,8 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
           //STOP TCP SERVER
           ESP8266_TCP_SERVER_Stop();
 
-					//FREE MEMORY
-					os_free(_config_page_html);
+          //FREE MEMORY
+		  os_free(_config_page_html);
 
           //START WIFI CONNECTION ATTEMPT
           wifi_softap_dhcps_stop();
@@ -790,4 +783,13 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
           //SAVE CREDENTIALS IN EEPROM LOCATION
       }
     }
+}
+
+static bool _esp8266_ssid_framework_check_valid_stationconfig(struct station_config* config)
+{
+    //CHECK IF PROVIDED STATION CONFIG IS VALID
+
+    if(config->ssid[0] < 48 || config->ssid[0] > 126 || config->password[0] < 48 || config->password[0] > 126)
+        return false;
+    return true;
 }
