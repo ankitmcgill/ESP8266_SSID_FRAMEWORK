@@ -331,6 +331,10 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_event_handler_cb(System_Even
             ESP8266_GPIO_Set_Value(_led_gpio_pin, 0);
             if(_esp8266_ssid_framework_wifi_connected_user_cb != NULL)
             {
+                //DELAY NEEDED TO LET ESP8266 SAVE SSID/PASSWORD IN FLASH
+                //ADDED TO AVOID CRASHING IF THE USER DOES ANY FLASH OPERATION
+                //AS SOON AS THE USER WIFI CONNECTED CB FUNCTION IS EXECUTED
+                os_delay_us(1000000);
                 (*_esp8266_ssid_framework_wifi_connected_user_cb)(_user_data_ptrs);
             }
             break;
@@ -404,7 +408,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
                                     "<!DOCTYPE html>"
                                     "<html>"
                                     "<head>"
-                                    "<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
+                                    //"<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
                                     "<title>ESP8266 Web Config</title>"
                                     "</head>"
                                     "<body>"
@@ -450,7 +454,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 			char* temp_str = (char*)os_zalloc(150);
 			char* format_str = "<input type=\"text\" name=\"%s\" class=\"form-control my-2 w-75\" placeholder=\"%s\">";
             wifi_station_get_config(&config);
-            if(strcmp(config.ssid, "") != 0 && strcmp(config.password,"") != 0)
+            if(config.ssid[0] >= 28 && config.ssid[0] <= 126 && config.password[0] >= 28 && config.password[0] <= 126)
 			{
 					//SAVED WIFI CREDENTIALS PRESENT
 					os_sprintf(temp_str, format_str, "ssid", config.ssid);
@@ -509,6 +513,9 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 			temp_str = (char*)os_zalloc(50);
 			uint8_t mac[6];
 			os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+            
+            os_sprintf(temp_str, "<li>ESP8266 Chip ID : %x</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
 
 			ESP8266_SYSINFO_GetSystemMac(mac);
@@ -518,13 +525,11 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 			os_sprintf(temp_str, "<li>Flash Chip ID : 0x%X</li>", ESP8266_SYSINFO_GetFlashChipId());
 			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
 
-			os_free(temp_str);
-
 			uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
 			switch(map)
 			{
 					case FLASH_SIZE_4M_MAP_256_256:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "Flash size : 4Mbits. Map : 256KBytes + 256KBytes");
+							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 4Mbits. Map : 256KBytes + 256KBytes</li>");
 							break;
 					case FLASH_SIZE_2M:
 							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
@@ -553,7 +558,32 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
 					case FLASH_SIZE_128M_MAP_1024_1024:
 							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
 							break;*/
-			}
+            }
+            
+            uint8_t flashmode = ESP8266_SYSINFO_GetFlashChipMode();
+            switch(flashmode)
+            {
+                case 0:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QIO</li>");
+                    break;
+                case 1:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QOUT</li>");
+                    break;
+                case 2:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DIO</li>");
+                    break;
+                case 3:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DOUT</li>");
+                    break;
+                default:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : UNKNOWN</li>");
+                    break;
+            }
+
+            os_sprintf(temp_str, "<li>SDK Version : %s</li>", ESP8266_SYSINFO_GetSDKVersion());
+			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+            os_free(temp_str);
 
 			//ADD ENDING HTML
 			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
@@ -594,7 +624,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
     {
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO:
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_INTERNAL:
-            //DO NOTHING. SIMPLY ATTEMP TO CONNECT TO WIFI
+            //DO NOTHING. SIMPLY ATTEMPT TO CONNECT TO WIFI
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_HARDCODED:
@@ -620,6 +650,7 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
                 os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
                 os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, strlen(_ssid_hardcoded_name_pwd.ssid_name));
                 os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, strlen(_ssid_hardcoded_name_pwd.ssid_pwd));
+                wifi_station_set_config(&config);
             }
             break;
 
@@ -634,7 +665,6 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
             break;
     }
 
-    wifi_station_set_config(&config);
     if(sconfig != NULL)
     {
         wifi_station_set_config(sconfig);
