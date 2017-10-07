@@ -40,9 +40,9 @@
 * -----------
 *   (1) ONLINE HTML EDITOR
 *       http://bestonlinehtmleditor.com/
-*		(2) BOOTSTRAP HTML GUI EDITOR
-*				http://http://pingendo.com/
-*				https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
+*	(2) BOOTSTRAP HTML GUI EDITOR
+*		http://http://pingendo.com/
+*		https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
 *
 * AUGUST 13 2017
 *
@@ -83,6 +83,9 @@ static uint8_t _ssid_gpio_trigger_pin;
 
 //CB FUNCTIONS
 static void (*_esp8266_ssid_framework_wifi_connected_user_cb)(char**);
+
+//UTILITY FUNCTIONS
+static bool _esp8266_ssid_framework_check_valid_stationconfig(struct station_config* config);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////
 
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetDebug(uint8_t debug_on)
@@ -153,7 +156,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO:
             if(_esp8266_ssid_framework_debug)
-                os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = GPIO\n");
+                os_printf("ESP8266 : SSID FRAMEWORK : INPUT MODE = GPIO @ pin %u\n", *(uint8_t*)user_data);
             _ssid_gpio_trigger_pin = *(uint8_t*)user_data;
             //SET TRIGGER GPIO AS INPUT
             ESP8266_GPIO_Set_Direction(_ssid_gpio_trigger_pin, 0);
@@ -328,6 +331,10 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_event_handler_cb(System_Even
             ESP8266_GPIO_Set_Value(_led_gpio_pin, 0);
             if(_esp8266_ssid_framework_wifi_connected_user_cb != NULL)
             {
+                //DELAY NEEDED TO LET ESP8266 SAVE SSID/PASSWORD IN FLASH
+                //ADDED TO AVOID CRASHING IF THE USER DOES ANY FLASH OPERATION
+                //AS SOON AS THE USER WIFI CONNECTED CB FUNCTION IS EXECUTED
+                os_delay_us(1000000);
                 (*_esp8266_ssid_framework_wifi_connected_user_cb)(_user_data_ptrs);
             }
             break;
@@ -394,151 +401,201 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
         config_path.path_found = 0;
 
         //GENERATE THE CONFIG PAGE HTML
-				strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
-                                  "Connection: Closed\r\n"
-                                  "Content-type: text/html"
-                                  "\r\n\r\n"
-																	"<!DOCTYPE html>"
-																	"<html>"
-																	"<head>"
-																	"<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
-																	"<title>ESP8266 Web Config</title>"
-																	"</head>"
-																	"<body>"
-																	"<div class=\"p-2 m-0 bg-dark text-white\">"
-																	"<div class=\"container\">"
-																	"<div class=\"row\">"
-																	"<div class=\"col-md-12\">"
-																	"<h1 class=\"\">ESP8266 Web Config</h1>"
-																	"</div>"
-																	"</div>"
-																	"<div class=\"row\">"
-																	"<div class=\"col-md-12 py-1\">"
-																	"<h2 class=\"\">");
-				//ADD PROJECT NAME
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</h2>");
+        strcpy(_config_page_html, "HTTP/1.1 200 OK\r\n"
+                                    "Connection: Closed\r\n"
+                                    "Content-type: text/html"
+                                    "\r\n\r\n"
+                                    "<!DOCTYPE html>"
+                                    "<html><head><title>ESP8266 Web Config</title>"
+                                    "<style>"
+                                    "html{box-sizing:border-box;font-family:sans-serif;line-height:1.15;-webkit-text-size-adjust:100%;}"
+                                    "</style>"
+                                    "</head>"
+                                    "<body>"
+                                    "<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" style=\"width:420px;\">"
+                                    "<tbody>"
+                                    "<tr>"
+                                    "<td style=\"text-align: left; vertical-align: middle; background-color: rgb(204, 51, 51);\">"
+                                    "<span style=\"color:#FFFFFF;\"><strong><span style=\"font-size: 18px;\">ESP8266 : Web Config</span></strong></span>"
+                                    "</td>"
+                                    "</tr>"
+                                    "<td style=\"text-align: left; vertical-align: middle; background-color: rgb(204, 51, 51);\">"
+                                    "<span style=\"color:#FFFFFF;\"><strong><span style=\"font-size: 18px;\">");
 
-				//ADD COMMON CONFIGURATION
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
-																																"</div>"
-																																"</div>"
-																																"</div>"
-																																"<div class=\"p-2 m-0 bg-dark text-white\">"
-																																"<div class=\"container\">"
-																																"<div class=\"row\">"
-																																"<div class=\"col-md-12 py-0 my-0\">"
-																																"<p class=\"lead\"><i>Ankit Bhatnagar"
-																																"<br>ankit.bhatnagarindia@gmail.com</i></p>"
-																																"</div>"
-																																"</div>"
-																																"</div>"
-																																"</div>"
-																																"<div class=\"py-0\">"
-																																"<form class=\"\\&quot;form-inline\\&quot;\" method=\"POST\" action=\"/config\">"
-																																"<div class=\"container py-3\">"
-																																"<div class=\"row\">"
-																																"<div class=\"col-md-6 border border-dark\">"
-																																"<p class=\"lead\"><b>Common</b></p>"
-																																"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" placeholder=\"SSID\">"
-																																"<input type=\"text\" name=\"password\" class=\"form-control my-2 w-75\" placeholder=\"PASSWORD\">"
-																																"<input type=\"submit\" class=\"btn my-3 text-center btn-success btn-sm w-50\"> </div>"
-																																"<div class=\"col-md-6 border border-dark\">"
-																																"<p class=\"lead\"><b>Project Specific</b></p>");
+        //ADD PROJECT NAME
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</span></strong></span>");
 
-      //ADD CUSTOM CONFIG FIELDS IF ANY
-      if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
-      {
-          //USER CUSTOM FIELDS PRESENT
-          uint8_t i = 0;
-          char* row_line = (char*)os_zalloc(200);
-					const char* row_format_string = "<input type=\"text\" name=\"%s\" class=\"form-control w-75 my-2\" placeholder=\"%s\">";
-          while(i < _custom_user_field_group->custom_fields_count)
-          {
-              os_sprintf(row_line, row_format_string,
-                                (_custom_user_field_group->custom_fields + i)->custom_field_name,
-                                (_custom_user_field_group->custom_fields + i)->custom_field_label);
-              strcpy(&_config_page_html[os_strlen(_config_page_html)], row_line);
-              i++;
-          }
-          os_free(row_line);
-      }
+        //ADD COMMON CONFIGURATION
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</td>"
+                                                                    "</tbody>"
+                                                                    "</table>"
+                                                                    "<form action=\"/config\" method=\"POST\">"
+                                                                    "<table align=\"left\" border=\"0\" cellpadding=\"1\" cellspacing=\"1\" style=\"width:420px;\">"
+                                                                    "<tbody>"
+                                                                    "<tr>"
+                                                                    "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>Basic Configuration</strong></span></td>"
+                                                                    "</tr>");
 
-      //ADD MORE HTML
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
-																															"</div>"
-																															"</div>"
-																															"</form>"
-																															"</div>"
-																															"<div class=\"bg-dark py-3\">"
-																															"<div class=\"container\">"
-																															"<div class=\"row\">"
-																															"<div class=\"col-md-12\">"
-																															"<h3 class=\"text-white\" contenteditable=\"true\">System Stats</h3>"
-																															"</div>"
-																															"</div>"
-																															"<div class=\"row\">"
-																															"<div class=\"col-md-12 text-white py-0\">"
-																															"<ul class=\"py-0\">");
 
-			//ADD SYSTEM PARAMS SECTION
-			char* temp_str = (char*)os_zalloc(50);
-			uint8_t mac[6];
-			os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+        //ADD SSID / PASSWORD INPUT
+        //FILL WITH SAVED ONES IF PRESENT
+        struct station_config config;
+        char* temp_str = (char*)os_zalloc(150);
+        char* format_str = "<td><input type=\"text\" name=\"%s\"></td>";
+        wifi_station_get_config(&config);
+        if(config.ssid[0] >= 28 && config.ssid[0] <= 126 && config.password[0] >= 28 && config.password[0] <= 126)
+        {
+            //SAVED WIFI CREDENTIALS PRESENT
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                                                        "<span style=\"color:#FFFFFF;\">SSID</span></td>");
+            os_sprintf(temp_str, format_str, "ssid", config.ssid);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "</tr>");
 
-			ESP8266_SYSINFO_GetSystemMac(mac);
-			os_sprintf(temp_str, "<li>MAC Address : %02X:%02X:%02X:%02X:%02X:%02X</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                                                        "<span style=\"color:#FFFFFF;\">SSID</span></td>");
+            os_sprintf(temp_str, format_str, "password", config.password);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "</tr>");
+        }
+        else
+        {
+            //NO SAVED WIFI CREDENTIALS PRESENT
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                                                        "<span style=\"color:#FFFFFF;\">SSID</span></td>"
+                                                                        "<td><input name=\"ssid\" type=\"text\" /></td>"
+                                                                        "</tr>"
+                                                                        "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0);\"><span style=\"color:#FFFFFF;\">PASSWORD</span></td>"
+                                                                        "<td><input name=\"password\" type=\"text\"/></td>"
+                                                                        "</tr>");
+        }
 
-			os_sprintf(temp_str, "<li>Flash Chip ID : 0x%X</li>", ESP8266_SYSINFO_GetFlashChipId());
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+        os_free(temp_str);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)],"<tr>"
+                                                                "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\">"
+                                                                "<span style=\"font-size:18px;\"><strong>Additional Configuration</strong></span></td>"
+                                                                "</tr>");
 
-			os_free(temp_str);
+        //ADD CUSTOM CONFIG FIELDS IF ANY
+        if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
+        {
+            //USER CUSTOM FIELDS PRESENT
+            uint8_t i = 0;
+            char* row_line = (char*)os_zalloc(200);
+            const char* row_format_string = "<span style=\"color:#FFFFFF;\">%s</span></td><td><input type=\"text\" name=\"%s\"></td>";
+            while(i < _custom_user_field_group->custom_fields_count)
+            {
+                os_sprintf(row_line, row_format_string,
+                                    (_custom_user_field_group->custom_fields + i)->custom_field_label,
+                                    (_custom_user_field_group->custom_fields + i)->custom_field_name);
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr><td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">");
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], row_line);
+                strcpy(&_config_page_html[os_strlen(_config_page_html)],"</tr>");
+                i++;
+            }
+            os_free(row_line);
+        }
 
-			uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
-			switch(map)
-			{
-					case FLASH_SIZE_4M_MAP_256_256:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "Flash size : 4Mbits. Map : 256KBytes + 256KBytes");
-							break;
-					case FLASH_SIZE_2M:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
-							break;
-					case FLASH_SIZE_8M_MAP_512_512:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
-							break;
-					case FLASH_SIZE_16M_MAP_512_512:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
-							break;
-					case FLASH_SIZE_32M_MAP_512_512:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
-							break;
-					case FLASH_SIZE_16M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;
-					/*case FLASH_SIZE_32M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;
-					case FLASH_SIZE_32M_MAP_2048_2048:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
-							break;
-					case FLASH_SIZE_64M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;
-					case FLASH_SIZE_128M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;*/
-			}
+        //ADD MORE HTML
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                    "<td colspan=\"2\" style=\"text-align: right; vertical-align: middle;\">"
+                                                                    "<input type=\"submit\" value=\"   Save   \" />"
+                                                                    "</td>"
+                                                                    "</tr>"
+                                                                    "<tr>"
+                                                                    "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>System Params</strong></span>"
+                                                                    "<ul>");
 
-			//ADD ENDING HTML
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
-																															"</div>"
-																															"</div>"
-																															"</div>"
-																															"</div>"
-																															"</body>"
-																															"</html>");
+        //ADD SYSTEM PARAMS SECTION
+        temp_str = (char*)os_zalloc(50);
+        uint8_t mac[6];
+        os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+        
+        os_sprintf(temp_str, "<li>ESP8266 Chip ID : %x</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        ESP8266_SYSINFO_GetSystemMac(mac);
+        os_sprintf(temp_str, "<li>MAC Address : %02X:%02X:%02X:%02X:%02X:%02X</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        os_sprintf(temp_str, "<li>Flash Chip ID : 0x%X</li>", ESP8266_SYSINFO_GetFlashChipId());
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
+        switch(map)
+        {
+                case FLASH_SIZE_4M_MAP_256_256:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 4Mbits. Map : 256KBytes + 256KBytes</li>");
+                        break;
+                case FLASH_SIZE_2M:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
+                        break;
+                case FLASH_SIZE_8M_MAP_512_512:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
+                        break;
+                case FLASH_SIZE_16M_MAP_512_512:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
+                        break;
+                case FLASH_SIZE_32M_MAP_512_512:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
+                        break;
+                case FLASH_SIZE_16M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;
+                /*case FLASH_SIZE_32M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;
+                case FLASH_SIZE_32M_MAP_2048_2048:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
+                        break;
+                case FLASH_SIZE_64M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;
+                case FLASH_SIZE_128M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;*/
+        }
+        
+        uint8_t flashmode = ESP8266_SYSINFO_GetFlashChipMode();
+        switch(flashmode)
+        {
+            case 0:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QIO</li>");
+                break;
+            case 1:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QOUT</li>");
+                break;
+            case 2:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DIO</li>");
+                break;
+            case 3:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DOUT</li>");
+                break;
+            default:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : UNKNOWN</li>");
+                break;
+        }
+
+        os_sprintf(temp_str, "<li>SDK Version : %s</li>", ESP8266_SYSINFO_GetSDKVersion());
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        os_free(temp_str);
+
+        //ADD ENDING HTML
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
+                                                                    "</td>"
+                                                                    "</tr>"
+                                                                    "</tbody>"
+                                                                    "</table>"
+                                                                    "</form>"
+                                                                    "</body>"
+                                                                    "</html>");
 
         config_path.path_response = _config_page_html;
         ESP8266_TCP_SERVER_RegisterUrlPathCb(config_path);
@@ -570,44 +627,33 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
     {
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO:
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_INTERNAL:
-            //DO NOTHING. SIMPLY ATTEMP TO CONNECT TO WIFI
+            //DO NOTHING. SIMPLY ATTEMPT TO CONNECT TO WIFI
             break;
 
         case ESP8266_SSID_FRAMEWORK_SSID_INPUT_HARDCODED:
             //CHECK IF ESP8266 HAS VALID INTERNAL STORED WIFI CREDENTIALS
             //IF PRESENT, USE THOSE TO ATTEMPT TO CONNECT TO WIFI
             //IF NOT PRESENT, USE THE HARDCODED SSID DATA
-            if(wifi_station_get_config_default(&config))
+            wifi_station_get_config_default(&config);
+            if(_esp8266_ssid_framework_check_valid_stationconfig(&config))
             {
-                os_printf("hardcoded : internal saved ssid = %s\n", config.ssid);
-
-                //CHECK IF RETREIVED INTERNAL CONFIG VALID
-                //IF NOT, USE HARDCODED SSID DETAILS
-                if(strcmp(config.ssid, "") != 0)
-                {
-                    //USE INTERNAL CREDENTIALS
-                    //SO DO NOTHING
-                }
-                else
-                {
-                    os_printf("hardcoded : internal saved ssid invalid. using hardcoded ssid\n");
-                    os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_name);
-                    os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_pwd);
-                    //USE HARDCODED CREDENTIALS
-                    os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
-                    os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
-                    os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, strlen(_ssid_hardcoded_name_pwd.ssid_name));
-                    os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, strlen(_ssid_hardcoded_name_pwd.ssid_pwd));
-                    wifi_station_set_config(&config);
-                }
+                //USE INTERNAL CREDENTIALS
+                //SO DO NOTHING
+                os_printf("internal saved ssid valid. Using that\n");
+                os_printf("%s\n",config.ssid);
+                os_printf("%s\n",config.password);
             }
             else
             {
-                //START WIFI WITH HARDCODED SSID
+                os_printf("internal saved ssid invalid. using hardcoded ssid\n");
+                os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_name);
+                os_printf("%s\n",_ssid_hardcoded_name_pwd.ssid_pwd);
+                //USE HARDCODED CREDENTIALS
                 os_memset(config.ssid, 0, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
                 os_memset(config.password, 0, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
-                os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN);
-                os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN);
+                os_memcpy(&config.ssid, _ssid_hardcoded_name_pwd.ssid_name, strlen(_ssid_hardcoded_name_pwd.ssid_name));
+                os_memcpy(&config.password, _ssid_hardcoded_name_pwd.ssid_pwd, strlen(_ssid_hardcoded_name_pwd.ssid_pwd));
+                wifi_station_set_config(&config);
             }
             break;
 
@@ -625,8 +671,8 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
     if(sconfig != NULL)
     {
         wifi_station_set_config(sconfig);
-        os_printf("ssid = %s**\n", sconfig->ssid);
-        os_printf("pswd = %s**\n", sconfig->password);
+        os_printf("ssid = %s\n", sconfig->ssid);
+        os_printf("pswd = %s\n", sconfig->password);
     }
 
     wifi_station_connect();
@@ -751,8 +797,8 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
           //STOP TCP SERVER
           ESP8266_TCP_SERVER_Stop();
 
-					//FREE MEMORY
-					os_free(_config_page_html);
+          //FREE MEMORY
+		  os_free(_config_page_html);
 
           //START WIFI CONNECTION ATTEMPT
           wifi_softap_dhcps_stop();
@@ -770,4 +816,13 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* dat
           //SAVE CREDENTIALS IN EEPROM LOCATION
       }
     }
+}
+
+static bool _esp8266_ssid_framework_check_valid_stationconfig(struct station_config* config)
+{
+    //CHECK IF PROVIDED STATION CONFIG IS VALID
+
+    if(config->ssid[0] < 48 || config->ssid[0] > 126 || config->password[0] < 48 || config->password[0] > 126)
+        return false;
+    return true;
 }
