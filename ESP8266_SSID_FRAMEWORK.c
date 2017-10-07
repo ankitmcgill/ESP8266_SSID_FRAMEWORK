@@ -406,193 +406,196 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
                                     "Content-type: text/html"
                                     "\r\n\r\n"
                                     "<!DOCTYPE html>"
-                                    "<html>"
-                                    "<head>"
-                                    //"<link rel=\"stylesheet\" href=\"https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css\">"
-                                    "<title>ESP8266 Web Config</title>"
+                                    "<html><head><title>ESP8266 Web Config</title>"
+                                    "<style>"
+                                    "html{box-sizing:border-box;font-family:sans-serif;line-height:1.15;-webkit-text-size-adjust:100%;}"
+                                    "</style>"
                                     "</head>"
                                     "<body>"
-                                    "<div class=\"p-2 m-0 bg-dark text-white\">"
-                                    "<div class=\"container\">"
-                                    "<div class=\"row\">"
-                                    "<div class=\"col-md-12\">"
-                                    "<h1 class=\"\">ESP8266 Web Config</h1>"
-                                    "</div>"
-                                    "</div>"
-                                    "<div class=\"row\">"
-                                    "<div class=\"col-md-12 py-1\">"
-                                    "<h2 class=\"\">");
+                                    "<table border=\"0\" cellpadding=\"3\" cellspacing=\"1\" style=\"width:420px;\">"
+                                    "<tbody>"
+                                    "<tr>"
+                                    "<td style=\"text-align: left; vertical-align: middle; background-color: rgb(204, 51, 51);\">"
+                                    "<span style=\"color:#FFFFFF;\"><strong><span style=\"font-size: 18px;\">ESP8266 : Web Config</span></strong></span>"
+                                    "</td>"
+                                    "</tr>"
+                                    "<td style=\"text-align: left; vertical-align: middle; background-color: rgb(204, 51, 51);\">"
+                                    "<span style=\"color:#FFFFFF;\"><strong><span style=\"font-size: 18px;\">");
 
-				//ADD PROJECT NAME
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
-				strcpy(&_config_page_html[os_strlen(_config_page_html)], "</h2>");
+        //ADD PROJECT NAME
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], _project_name);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</span></strong></span>");
 
-				//ADD COMMON CONFIGURATION
-                strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
-                                                                            "</div>"
-                                                                            "</div>"
-                                                                            "</div>"
-                                                                            "<div class=\"p-2 m-0 bg-dark text-white\">"
-                                                                            "<div class=\"container\">"
-                                                                            "<div class=\"row\">"
-                                                                            "<div class=\"col-md-12 py-0 my-0\">"
-                                                                            "<p class=\"lead\"><i>Ankit Bhatnagar"
-                                                                            "<br>ankit.bhatnagarindia@gmail.com</i></p>"
-                                                                            "</div>"
-                                                                            "</div>"
-                                                                            "</div>"
-                                                                            "</div>"
-                                                                            "<div class=\"py-0\">"
-                                                                            "<form class=\"\\&quot;form-inline\\&quot;\" method=\"POST\" action=\"/config\">"
-                                                                            "<div class=\"container py-3\">"
-                                                                            "<div class=\"row\">"
-                                                                            "<div class=\"col-md-6 border border-dark\">"
-                                                                            "<p class=\"lead\"><b>Common</b></p>");
-			//ADD SSID / PASSWORD INPUT
-			//FILL WITH SAVED ONES IF PRESENT
-			struct station_config config;
-			char* temp_str = (char*)os_zalloc(150);
-			char* format_str = "<input type=\"text\" name=\"%s\" class=\"form-control my-2 w-75\" placeholder=\"%s\">";
-            wifi_station_get_config(&config);
-            if(config.ssid[0] >= 28 && config.ssid[0] <= 126 && config.password[0] >= 28 && config.password[0] <= 126)
-			{
-					//SAVED WIFI CREDENTIALS PRESENT
-					os_sprintf(temp_str, format_str, "ssid", config.ssid);
-					strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
-					os_sprintf(temp_str, format_str, "password", config.password);
-					strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
-			}
-			else
-			{
-					//NO SAVED WIFI CREDENTIALS PRESENT
-					strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"text\" name=\"ssid\" class=\"form-control my-2 w-75\" placeholder=\"SSID\">"
-					"<input type=\"text\" name=\"password\" class=\"form-control my-2 w-75\" placeholder=\"PASSWORD\">");
-			}
+        //ADD COMMON CONFIGURATION
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</td>"
+                                                                    "</tbody>"
+                                                                    "</table>"
+                                                                    "<form action=\"/config\" method=\"POST\">"
+                                                                    "<table align=\"left\" border=\"0\" cellpadding=\"1\" cellspacing=\"1\" style=\"width:420px;\">"
+                                                                    "<tbody>"
+                                                                    "<tr>"
+                                                                    "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>Basic Configuration</strong></span></td>"
+                                                                    "</tr>");
 
-			os_free(temp_str);
-			strcpy(&_config_page_html[os_strlen(_config_page_html)],"<input type=\"submit\" class=\"btn my-3 text-center btn-success btn-sm w-50\"> </div>"
-                                                                        "<div class=\"col-md-6 border border-dark\">"
-                                                                        "<p class=\"lead\"><b>Project Specific</b></p>");
 
-      //ADD CUSTOM CONFIG FIELDS IF ANY
-      if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
-      {
-          //USER CUSTOM FIELDS PRESENT
-          uint8_t i = 0;
-          char* row_line = (char*)os_zalloc(200);
-					const char* row_format_string = "<input type=\"text\" name=\"%s\" class=\"form-control w-75 my-2\" placeholder=\"%s\">";
-          while(i < _custom_user_field_group->custom_fields_count)
-          {
-              os_sprintf(row_line, row_format_string,
-                                (_custom_user_field_group->custom_fields + i)->custom_field_name,
-                                (_custom_user_field_group->custom_fields + i)->custom_field_label);
-              strcpy(&_config_page_html[os_strlen(_config_page_html)], row_line);
-              i++;
-          }
-          os_free(row_line);
-      }
+        //ADD SSID / PASSWORD INPUT
+        //FILL WITH SAVED ONES IF PRESENT
+        struct station_config config;
+        char* temp_str = (char*)os_zalloc(150);
+        char* format_str = "<td><input type=\"text\" name=\"%s\"></td>";
+        wifi_station_get_config(&config);
+        if(config.ssid[0] >= 28 && config.ssid[0] <= 126 && config.password[0] >= 28 && config.password[0] <= 126)
+        {
+            //SAVED WIFI CREDENTIALS PRESENT
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                                                        "<span style=\"color:#FFFFFF;\">SSID</span></td>");
+            os_sprintf(temp_str, format_str, "ssid", config.ssid);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "</tr>");
+
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                                                        "<span style=\"color:#FFFFFF;\">SSID</span></td>");
+            os_sprintf(temp_str, format_str, "password", config.password);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)],temp_str);
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "</tr>");
+        }
+        else
+        {
+            //NO SAVED WIFI CREDENTIALS PRESENT
+            strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">"
+                                                                        "<span style=\"color:#FFFFFF;\">SSID</span></td>"
+                                                                        "<td><input name=\"ssid\" type=\"text\" /></td>"
+                                                                        "</tr>"
+                                                                        "<tr>"
+                                                                        "<td style=\"background-color: rgb(0, 0, 0);\"><span style=\"color:#FFFFFF;\">PASSWORD</span></td>"
+                                                                        "<td><input name=\"password\" type=\"text\"/></td>"
+                                                                        "</tr>");
+        }
+
+        os_free(temp_str);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)],"<tr>"
+                                                                "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\">"
+                                                                "<span style=\"font-size:18px;\"><strong>Additional Configuration</strong></span></td>"
+                                                                "</tr>");
+
+        //ADD CUSTOM CONFIG FIELDS IF ANY
+        if(_custom_user_field_group != NULL &&_custom_user_field_group->custom_fields_count != 0)
+        {
+            //USER CUSTOM FIELDS PRESENT
+            uint8_t i = 0;
+            char* row_line = (char*)os_zalloc(200);
+            const char* row_format_string = "<span style=\"color:#FFFFFF;\">%s</span></td><td><input type=\"text\" name=\"%s\"></td>";
+            while(i < _custom_user_field_group->custom_fields_count)
+            {
+                os_sprintf(row_line, row_format_string,
+                                    (_custom_user_field_group->custom_fields + i)->custom_field_label,
+                                    (_custom_user_field_group->custom_fields + i)->custom_field_name);
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr><td style=\"background-color: rgb(0, 0, 0); text-align: left; vertical-align: middle;\">");
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], row_line);
+                strcpy(&_config_page_html[os_strlen(_config_page_html)],"</tr>");
+                i++;
+            }
+            os_free(row_line);
+        }
 
         //ADD MORE HTML
-        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</div>"
-                                                                    "</div>"
-                                                                    "</div>"
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<tr>"
+                                                                    "<td colspan=\"2\" style=\"text-align: right; vertical-align: middle;\">"
+                                                                    "<input type=\"submit\" value=\"   Save   \" />"
+                                                                    "</td>"
+                                                                    "</tr>"
+                                                                    "<tr>"
+                                                                    "<td colspan=\"2\" style=\"background-color: rgb(255, 204, 51);\"><span style=\"font-size:18px;\"><strong>System Params</strong></span>"
+                                                                    "<ul>");
+
+        //ADD SYSTEM PARAMS SECTION
+        temp_str = (char*)os_zalloc(50);
+        uint8_t mac[6];
+        os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+        
+        os_sprintf(temp_str, "<li>ESP8266 Chip ID : %x</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        ESP8266_SYSINFO_GetSystemMac(mac);
+        os_sprintf(temp_str, "<li>MAC Address : %02X:%02X:%02X:%02X:%02X:%02X</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        os_sprintf(temp_str, "<li>Flash Chip ID : 0x%X</li>", ESP8266_SYSINFO_GetFlashChipId());
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
+        switch(map)
+        {
+                case FLASH_SIZE_4M_MAP_256_256:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 4Mbits. Map : 256KBytes + 256KBytes</li>");
+                        break;
+                case FLASH_SIZE_2M:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
+                        break;
+                case FLASH_SIZE_8M_MAP_512_512:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
+                        break;
+                case FLASH_SIZE_16M_MAP_512_512:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
+                        break;
+                case FLASH_SIZE_32M_MAP_512_512:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
+                        break;
+                case FLASH_SIZE_16M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;
+                /*case FLASH_SIZE_32M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;
+                case FLASH_SIZE_32M_MAP_2048_2048:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
+                        break;
+                case FLASH_SIZE_64M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;
+                case FLASH_SIZE_128M_MAP_1024_1024:
+                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                        break;*/
+        }
+        
+        uint8_t flashmode = ESP8266_SYSINFO_GetFlashChipMode();
+        switch(flashmode)
+        {
+            case 0:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QIO</li>");
+                break;
+            case 1:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QOUT</li>");
+                break;
+            case 2:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DIO</li>");
+                break;
+            case 3:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DOUT</li>");
+                break;
+            default:
+                strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : UNKNOWN</li>");
+                break;
+        }
+
+        os_sprintf(temp_str, "<li>SDK Version : %s</li>", ESP8266_SYSINFO_GetSDKVersion());
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
+
+        os_free(temp_str);
+
+        //ADD ENDING HTML
+        strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
+                                                                    "</td>"
+                                                                    "</tr>"
+                                                                    "</tbody>"
+                                                                    "</table>"
                                                                     "</form>"
-                                                                    "</div>"
-                                                                    "<div class=\"bg-dark py-3\">"
-                                                                    "<div class=\"container\">"
-                                                                    "<div class=\"row\">"
-                                                                    "<div class=\"col-md-12\">"
-                                                                    "<h3 class=\"text-white\" contenteditable=\"true\">System Stats</h3>"
-                                                                    "</div>"
-                                                                    "</div>"
-                                                                    "<div class=\"row\">"
-                                                                    "<div class=\"col-md-12 text-white py-0\">"
-                                                                    "<ul class=\"py-0\">");
-
-			//ADD SYSTEM PARAMS SECTION
-			temp_str = (char*)os_zalloc(50);
-			uint8_t mac[6];
-			os_sprintf(temp_str, "<li>CPU Frequency : %dMHz</li>", ESP8266_SYSINFO_GetCpuFrequency());
-            strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
-            
-            os_sprintf(temp_str, "<li>ESP8266 Chip ID : %x</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
-
-			ESP8266_SYSINFO_GetSystemMac(mac);
-			os_sprintf(temp_str, "<li>MAC Address : %02X:%02X:%02X:%02X:%02X:%02X</li>", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
-
-			os_sprintf(temp_str, "<li>Flash Chip ID : 0x%X</li>", ESP8266_SYSINFO_GetFlashChipId());
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
-
-			uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
-			switch(map)
-			{
-					case FLASH_SIZE_4M_MAP_256_256:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 4Mbits. Map : 256KBytes + 256KBytes</li>");
-							break;
-					case FLASH_SIZE_2M:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
-							break;
-					case FLASH_SIZE_8M_MAP_512_512:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
-							break;
-					case FLASH_SIZE_16M_MAP_512_512:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
-							break;
-					case FLASH_SIZE_32M_MAP_512_512:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
-							break;
-					case FLASH_SIZE_16M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;
-					/*case FLASH_SIZE_32M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;
-					case FLASH_SIZE_32M_MAP_2048_2048:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
-							break;
-					case FLASH_SIZE_64M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;
-					case FLASH_SIZE_128M_MAP_1024_1024:
-							strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
-							break;*/
-            }
-            
-            uint8_t flashmode = ESP8266_SYSINFO_GetFlashChipMode();
-            switch(flashmode)
-            {
-                case 0:
-                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QIO</li>");
-                    break;
-                case 1:
-                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : QOUT</li>");
-                    break;
-                case 2:
-                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DIO</li>");
-                    break;
-                case 3:
-                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : DOUT</li>");
-                    break;
-                default:
-                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash Mode : UNKNOWN</li>");
-                    break;
-            }
-
-            os_sprintf(temp_str, "<li>SDK Version : %s</li>", ESP8266_SYSINFO_GetSDKVersion());
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], temp_str);
-
-            os_free(temp_str);
-
-			//ADD ENDING HTML
-			strcpy(&_config_page_html[os_strlen(_config_page_html)], "</ul>"
-                                                                        "</div>"
-                                                                        "</div>"
-                                                                        "</div>"
-                                                                        "</div>"
-                                                                        "</body>"
-                                                                        "</html>");
+                                                                    "</body>"
+                                                                    "</html>");
 
         config_path.path_response = _config_page_html;
         ESP8266_TCP_SERVER_RegisterUrlPathCb(config_path);
