@@ -530,36 +530,36 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
         uint8_t map = ESP8266_SYSINFO_GetSystemFlashMap();
         switch(map)
         {
-                case FLASH_SIZE_4M_MAP_256_256:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 4Mbits. Map : 256KBytes + 256KBytes</li>");
-                        break;
-                case FLASH_SIZE_2M:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
-                        break;
-                case FLASH_SIZE_8M_MAP_512_512:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
-                        break;
-                case FLASH_SIZE_16M_MAP_512_512:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
-                        break;
-                case FLASH_SIZE_32M_MAP_512_512:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
-                        break;
-                case FLASH_SIZE_16M_MAP_1024_1024:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
-                        break;
-                /*case FLASH_SIZE_32M_MAP_1024_1024:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
-                        break;
-                case FLASH_SIZE_32M_MAP_2048_2048:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
-                        break;
-                case FLASH_SIZE_64M_MAP_1024_1024:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
-                        break;
-                case FLASH_SIZE_128M_MAP_1024_1024:
-                        strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
-                        break;*/
+            case FLASH_SIZE_4M_MAP_256_256:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 4Mbits. Map : 256KBytes + 256KBytes</li>");
+                    break;
+            case FLASH_SIZE_2M:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 2Mbits. Map : 256KBytes</li>");
+                    break;
+            case FLASH_SIZE_8M_MAP_512_512:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 8Mbits. Map : 512KBytes + 512KBytes</li>");
+                    break;
+            case FLASH_SIZE_16M_MAP_512_512:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 512KBytes + 512KBytes</li>");
+                    break;
+            case FLASH_SIZE_32M_MAP_512_512:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 512KBytes + 512KBytes</li>");
+                    break;
+            case FLASH_SIZE_16M_MAP_1024_1024:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                    break;
+            /*case FLASH_SIZE_32M_MAP_1024_1024:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                    break;
+            case FLASH_SIZE_32M_MAP_2048_2048:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
+                    break;
+            case FLASH_SIZE_64M_MAP_1024_1024:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                    break;
+            case FLASH_SIZE_128M_MAP_1024_1024:
+                    strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 128Mbits. Map : 1024KBytes + 1024KBytes</li>");
+                    break;*/
         }
         
         uint8_t flashmode = ESP8266_SYSINFO_GetFlashChipMode();
