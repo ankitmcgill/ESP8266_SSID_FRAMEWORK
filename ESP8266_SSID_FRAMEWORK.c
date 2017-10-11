@@ -548,12 +548,12 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_ssid_configuration(voi
             case FLASH_SIZE_16M_MAP_1024_1024:
                     strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 16Mbits. Map : 1024KBytes + 1024KBytes</li>");
                     break;
-            /*case FLASH_SIZE_32M_MAP_1024_1024:
+            case FLASH_SIZE_32M_MAP_1024_1024:
                     strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 1024KBytes + 1024KBytes</li>");
                     break;
-            case FLASH_SIZE_32M_MAP_2048_2048:
+            /*case FLASH_SIZE_32M_MAP_2048_2048:
                     strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 32Mbits. Map : 2048KBytes + 2048KBytes (Not Supported)</li>");
-                    break;
+                    break;*
             case FLASH_SIZE_64M_MAP_1024_1024:
                     strcpy(&_config_page_html[os_strlen(_config_page_html)], "<li>Flash size : 64Mbits. Map : 1024KBytes + 1024KBytes</li>");
                     break;
