@@ -40,9 +40,9 @@
 * -----------
 *   (1) ONLINE HTML EDITOR
 *       http://bestonlinehtmleditor.com/
-*		(2) BOOTSTRAP HTML GUI EDITOR
-*				http://http://pingendo.com/
-*				https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
+*	(2) BOOTSTRAP HTML GUI EDITOR
+*		http://http://pingendo.com/
+*		https://diyprojects.io/bootstrap-create-beautiful-web-interface-projects-esp8266/#.WdMcBmt95hH
 *
 * AUGUST 13 2017
 *
@@ -66,19 +66,19 @@
 #define ESP8266_SSID_WEBCONFIG
 
 #define ESP8266_SSID_FRAMEWORK_WEBCONFIG_PATH_STRING		"/config"
-#define ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN            32
-#define ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN            64
-#define ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT   5
+#define ESP8266_SSID_FRAMEWORK_SSID_NAME_LEN                32
+#define ESP8266_SSID_FRAMEWORK_SSID_PSWD_LEN                64
+#define ESP8266_SSID_FRAMEWORK_CUSTOM_FIELD_MAX_COUNT       5
 
 #if defined(ESP8266_SSID_FLASH)
-  #include "ESP8266_FLASH.h"
+    #include "ESP8266_FLASH.h"
 #elif defined(ESP8266_SSID_EEPROM)
-  #include "ESP8266_EEPROM_AT24.h"
+    #include "ESP8266_EEPROM_AT24.h"
 #elif defined(ESP8266_SSID_SMARTCONFIG)
-  #include "ESP8266_SMARTCONFIG.h"
+    #include "ESP8266_SMARTCONFIG.h"
 #elif defined(ESP8266_SSID_WEBCONFIG)
-  #include "ESP8266_MDNS.h"
-  #include "ESP8266_TCP_SERVER.h"
+    #include "ESP8266_MDNS.h"
+    #include "ESP8266_TCP_SERVER.h"
 #endif
 
 
@@ -139,7 +139,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
                                                             uint8_t retry_count,
                                                             uint32_t retry_delay_ms,
                                                             uint8_t gpio_led_pin,
-																														char* project_name);
+															char* project_name);
 
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetCbFunctions(void (*wifi_connected_cb)(char**));
 
@@ -155,4 +155,5 @@ void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_connection_process(str
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_wifi_start_softap(void);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_path_config_cb(void);
 void ICACHE_FLASH_ATTR _esp8266_ssid_framework_tcp_server_post_data_cb(char* data, uint16_t len, uint8_t post_flag);
+
 #endif
