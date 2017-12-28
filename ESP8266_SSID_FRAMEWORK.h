@@ -92,6 +92,12 @@ typedef enum
     ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO
 }ESP8266_SSID_FRAMEWORK_SSID_INPUT_MODE;
 
+typedef enum
+{
+    ESP8266_SSID_FRAMEWORK_GPIO_TRIGGER_LOW = 0,
+    ESP8266_SSID_FRAMEWORK_GPIO_TRIGGER_HIGH
+}ESP8266_SSID_FRAMEWORK_GPIO_TRIGGER;
+
 typedef struct
 {
     char* ssid_name;
@@ -141,6 +147,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
                                                             uint8_t gpio_led_pin,
 															char* project_name);
 
+void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetGpioTriggerLevelSet(ESP8266_SSID_FRAMEWORK_GPIO_TRIGGER level);
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetCbFunctions(void (*wifi_connected_cb)(char**));
 
 //OPERATION FUNCTIONS

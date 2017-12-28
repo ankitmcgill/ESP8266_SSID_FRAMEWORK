@@ -59,6 +59,7 @@ static uint8_t _esp8266_ssid_framework_debug;
 //OPERATION RELATED
 static ESP8266_SSID_FRAMEWORK_SSID_INPUT_MODE _input_mode;
 static ESP8266_SSID_FRAMEWORK_CONFIG_MODE _config_mode;
+static ESP8266_SSID_FRAMEWORK_GPIO_TRIGGER _gpio_trigger_level;
 static volatile uint8_t _esp8266_ssid_framework_wifi_connected = 0;
 static uint8_t _led_gpio_pin;
 
@@ -189,6 +190,17 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetParameters(ESP8266_SSID_FRAMEWO
     os_timer_setfn(&_status_led_timer, _esp8266_ssid_framework_led_toggle_cb, NULL);
 }
 
+void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetGpioTriggerLevelSet(ESP8266_SSID_FRAMEWORK_GPIO_TRIGGER level)
+{
+    //SET THE TRIGGER LEVEL FOR GPIO TRIGGER
+
+    _gpio_trigger_level = level;
+    if(_esp8266_ssid_framework_debug)
+    {
+        os_printf("ESP8266 : SSID FRAMEWORK : GPIO Trigger Level = %u!\n", _gpio_trigger_level);
+    }
+}
+
 void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_SetCbFunctions(void (*wifi_connected_cb)(char**))
 {
     //SET THE USER CB FUNCTION TO BE CALLED WHEN THE WIFI IS CONNECTED
@@ -220,7 +232,7 @@ void ICACHE_FLASH_ATTR ESP8266_SSID_FRAMEWORK_Initialize(void)
     wifi_set_event_handler_cb(_esp8266_ssid_framework_wifi_event_handler_cb);
 
     //SPECIAL CASE: CHECK FOR GPIO TRIGGER IF FRAMEWORK INPUT = GPIO
-    if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO && ESP8266_GPIO_Get_Value(_ssid_gpio_trigger_pin) == 1)
+    if(_input_mode == ESP8266_SSID_FRAMEWORK_SSID_INPUT_GPIO && ESP8266_GPIO_Get_Value(_ssid_gpio_trigger_pin) == _gpio_trigger_level)
     {
         //GPIO TRIGGERED. START SSID CONFIG
         if(_esp8266_ssid_framework_debug)
